@@ -1,5 +1,6 @@
 ﻿using PeakCheat.Utilities;
 using Photon.Pun;
+using UnityEngine;
 
 namespace PeakCheat.Classes
 {
@@ -22,12 +23,17 @@ namespace PeakCheat.Classes
         public string UserId = string.Empty;
         public PhotonView View;
         public global::Player GamePlayer;
-        public global::Character GameCharacter;
+        public Character GameCharacter;
         public Photon.Realtime.Player PhotonPlayer;
+        public CharacterData? CharacterData => GameCharacter?.data;
+        public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
+        public bool OnGround => CharacterData?.isGrounded?? true;
+        public bool Alive => CharacterData?.dead?? false;
+        public bool Dead => !Alive;
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
-        public static implicit operator CheatPlayer(global::Player player) => new CheatPlayer(player);
-        public static implicit operator CheatPlayer(Photon.Realtime.Player player) => new CheatPlayer(PlayerHandler.GetPlayer(player));
-        public static implicit operator CheatPlayer(Character character) => new CheatPlayer(character.player);
+        public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
+        public static implicit operator CheatPlayer(Photon.Realtime.Player player) => player.ToCheatPlayer();
+        public static implicit operator CheatPlayer(Character character) => character.ToCheatPlayer();
         public static implicit operator global::Player(CheatPlayer player) => player.GamePlayer;
         public static implicit operator Photon.Realtime.Player(CheatPlayer player) => player.PhotonPlayer;
         public static implicit operator PhotonView(CheatPlayer player) => player.View;

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using PeakCheat.Classes;
+using Steamworks;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,6 +34,11 @@ namespace PeakCheat.Utilities
             method(style.onNormal, false);
             method(style.normal, false);
         }
+        public static bool OnGround() => CheatPlayer.LocalPlayer.OnGround;
+        public static Vector3 WithX(this Vector3 vector, float x) => new Vector3(x, vector.y, vector.z);
+        public static Vector3 WithY(this Vector3 vector, float y) => new Vector3(vector.x, y, vector.z);
+        public static Vector3 WithZ(this Vector3 vector, float z) => new Vector3(vector.x, vector.y, z);
+        public static Color WithA(this Color c, float a) => new Color(c.r, c.g, c.b, a);
         public static GUIStyle GetButton(Color normal, Color active)
         {
             var pair = new KeyValuePair<Color, Color>(normal, active);

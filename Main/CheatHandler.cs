@@ -11,7 +11,7 @@ namespace PeakCheat.Main
     public class CheatHandler: CheatBehaviour
     {
         private static Dictionary<string, List<Cheat>> _cheats = new Dictionary<string, List<Cheat>>();
-        public static Cheat[] Cheats => _cheats.Values.SelectMany(X => X).ToArray();
+        public static Cheat[] Cheats => _cheats.Values.SelectMany(X => X).Where(C => !C.Hide()).ToArray();
         private static Rect _rect = Rect.zero;
         private static bool _show = false;
         public override void Start()
@@ -62,17 +62,16 @@ namespace PeakCheat.Main
                     if (GUI.Button(buttonRect, $"<b><size=13>{cheat.Name}</size></b>", UnityUtil.GetButton(buttonColor, buttonColor)))
                     {
                         cheat.Enabled = !cheat.Enabled;
-                        if (cheat.Enabled)
-                            cheat.Enable();
+                        if (cheat.Enabled) cheat.Enable();
                         else cheat.Disable();
                     }
                     var mousePos = Event.current.mousePosition;
                     if (buttonRect.Contains(mousePos))
-                        GUI.Label(new Rect(mousePos - (Vector2.down * 7.4f), Vector2.one * 500f), $"<b><i><size=9>{cheat.Description}</size></i></b>");
+                        GUI.Label(new Rect(mousePos - (Vector2.down * 7.4f), Vector2.one * 500f), $"<b><i><size=12>{cheat.Description}</size></i></b>");
                 }
             }, "");
             GUI.DrawTexture(_rect, UnityUtil.FromColor(Color.black));
-            GUI.Label(new Rect(_rect.position + (Vector2.down * 20f), _rect.size), "<b><size=23>PeakCheat</size></b>");
+            GUI.Label(new Rect(_rect.position + (Vector2.down * 27f), _rect.size), "<b><size=23>PeakCheat</size></b>");
         }
     }
 }

@@ -9,6 +9,12 @@
 		<Copy SourceFiles="$(TargetPath)" DestinationFiles="C:\\Program Files (x86)\\Steam\\steamapps\\common\\PEAK\\BepInEx\\plugins\\$(TargetFileName)" />
 		<Message Text="Placed $(ProjectName).dll inside of plugins" Importance="high" />
 	</Target>
+	
+	<ItemGroup>
+	  <Compile Remove="Cheats\Visuals\**" />
+	  <EmbeddedResource Remove="Cheats\Visuals\**" />
+	  <None Remove="Cheats\Visuals\**" />
+	</ItemGroup>
 
 
 	<ItemGroup>
@@ -379,9 +385,4 @@
       <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\PEAK\PEAK_Data\Managed\Zorro.UI.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
-
-
-	<ItemGroup>
-	  <Folder Include="Cheats\Visuals\" />
-	</ItemGroup>
 </Project>

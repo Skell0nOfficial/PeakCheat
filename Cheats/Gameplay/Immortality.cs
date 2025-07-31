@@ -7,6 +7,6 @@ namespace PeakCheat.Cheats.Gameplay
     {
         public override string Name => "Immortality";
         public override string Description => "Grants you Immortality";
-        public override void Method() => AbusiveUtil.Revive(Character.localCharacter);
+        public override void Method() => CheatPlayer.LocalPlayer.Revive();
     }
 }
