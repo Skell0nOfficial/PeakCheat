@@ -9,7 +9,7 @@ namespace PeakCheat.Utilities
     {
         public enum LogLevel { None, Warning, Error }
         private static Dictionary<LogLevel, ManualLogSource> _loggers = new Dictionary<LogLevel, ManualLogSource>();
-        public override void Start()
+        void CheatBehaviour.Start()
         {
             if (_loggers.Count != 0) return;
             foreach (var level in Enum.GetValues(typeof(LogLevel)))

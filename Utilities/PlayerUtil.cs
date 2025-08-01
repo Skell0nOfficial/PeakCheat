@@ -49,7 +49,6 @@ namespace PeakCheat.Utilities
         }
         #endregion
         #region Scripts
-
         public static Vector3 NaN => Vector3.one * (float.MaxValue / 10f);
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
@@ -59,7 +58,6 @@ namespace PeakCheat.Utilities
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target, object[] data) => player.View?.RPC(RPC, target, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object[] data) => player.View?.RPC(RPC, target, data);
         public static bool GetMaster() => PhotonNetwork.SetMasterClient(PhotonNetwork.MasterClient);
-        public static void LogAssembly() => Debug.Log(string.Join('\n', new System.Diagnostics.StackTrace().GetFrames().Select(F => $"{F.GetType().Assembly}:{F.GetMethod().Name}")));
         public static void Kill(this CheatPlayer player) => PlayerRPC(player, "RPCA_Die", player.Position);
         public static async void Destroy(this CheatPlayer player)
         {
@@ -74,12 +72,34 @@ namespace PeakCheat.Utilities
             await Task.Delay(600);
             PhotonNetwork.DestroyPlayerObjects(player.PhotonPlayer.ActorNumber, false);
         }
+        public static void Fling(this CheatPlayer player)
+        {
+            if (!TimeUtil.CheckTime(.3f))
+            {
+                LogUtil.Log(false, "Rejecting fling (time delay returned false)");
+                return;
+            }
+            for (int i = 0; i < 500; i++)
+                Jump(player, true, (i + 1) % 2 == 0);
+        }
+        public static void Jump(this CheatPlayer player, bool ForceJump, bool PalJump)
+        {
+            if (ForceJump)
+                PlayerRPC(player, "JumpRpc", PalJump);
+            else if (player.OnGround) PlayerRPC(player, "JumpRpc", PalJump);
+        }
+        public static void SetDeadEyes(this CheatPlayer player, bool Dead) => PlayerRPC(player, Dead? "CharacterDied": "OnRevive_RPC");
         public static void Faint(this CheatPlayer player) => PlayerRPC(player, "RPCA_PassOut");
         public static void Fall(this CheatPlayer player) => PlayerRPC(player, "RPCA_Fall", 1f);
         public static void Revive(this CheatPlayer player)
         {
-            if (player.Dead)
-                PlayerRPC(player, "RPCA_Revive", true);
+            if (!player.Dead)
+            {
+                LogUtil.Log(false, $"Attempted to Revive alive player \"{player.Name}\" ?");
+                return;
+            }
+            LogUtil.Log($"Reviving Player \"{player.Name}\"..");
+            PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { CheatPlayer.LocalPlayer.Position, true });
         }
         public static void Teleport(this CheatPlayer player, Vector3 pos) => Teleport(player, pos, false);
         public static void Teleport(this CheatPlayer player, Vector3 pos, bool rpc)
@@ -97,7 +117,16 @@ namespace PeakCheat.Utilities
             foreach (var part in PlayerHandler.GetPlayer(player).character.refs.ragdoll.partDict.Keys)
                 PlayerRPC(player, "RPCA_AddForceToBodyPart", new object[] { part, Vector3.zero, velocity * 30f });
         }
-        public static void Crash(this CheatPlayer player) => Teleport(player, NaN);
+        public static void Crash(this CheatPlayer player)
+        {
+            if (!TimeUtil.CheckTime(1f)) return;
+            var t = Character.localCharacter.refs.ragdoll.partDict[BodypartType.Head].transform;
+            if (!Physics.Raycast(t.position + (t.forward * 1f), Vector3.down, out var cast, 25f)) return;
+            foreach (var p in AllPlayers())
+                if (!p.IsLocal())
+                    for (int i = 0; i < 1000; i++)
+                        PlayerRPC(p, "ReceivePoint_Rpc", player, new object[] { cast.point, Vector3.down });
+        }
         #endregion
     }
 }

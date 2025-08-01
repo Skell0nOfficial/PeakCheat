@@ -8,7 +8,7 @@ namespace PeakCheat.Utilities
     internal class TeleportUtil: CheatBehaviour
     {
         private static Queue<KeyValuePair<CheatPlayer, Vector3>> _teleports = new Queue<KeyValuePair<CheatPlayer, Vector3>>();
-        public override void Start() => ProcessTeleportation();
+        void CheatBehaviour.Start() => ProcessTeleportation();
         public static void Teleport(CheatPlayer player, Vector3 pos) => _teleports.Enqueue(new KeyValuePair<CheatPlayer, Vector3>(player, pos));
         private static async void ProcessTeleportation()
         {

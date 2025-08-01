@@ -9,12 +9,6 @@
 		<Copy SourceFiles="$(TargetPath)" DestinationFiles="C:\\Program Files (x86)\\Steam\\steamapps\\common\\PEAK\\BepInEx\\plugins\\$(TargetFileName)" />
 		<Message Text="Placed $(ProjectName).dll inside of plugins" Importance="high" />
 	</Target>
-	
-	<ItemGroup>
-	  <Compile Remove="Cheats\Visuals\**" />
-	  <EmbeddedResource Remove="Cheats\Visuals\**" />
-	  <None Remove="Cheats\Visuals\**" />
-	</ItemGroup>
 
 
 	<ItemGroup>

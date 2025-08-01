@@ -1,7 +1,7 @@
 ﻿using PeakCheat.Classes;
-using Steamworks;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace PeakCheat.Utilities
@@ -38,7 +38,10 @@ namespace PeakCheat.Utilities
         public static Vector3 WithX(this Vector3 vector, float x) => new Vector3(x, vector.y, vector.z);
         public static Vector3 WithY(this Vector3 vector, float y) => new Vector3(vector.x, y, vector.z);
         public static Vector3 WithZ(this Vector3 vector, float z) => new Vector3(vector.x, vector.y, z);
-        public static Color WithA(this Color c, float a) => new Color(c.r, c.g, c.b, a);
+        public static Color WithRed(this Color c, float r) => new Color(r, c.g, c.b, c.a);
+        public static Color WithGreen(this Color c, float g) => new Color(c.r, g, c.b, c.a);
+        public static Color WithBlue(this Color c, float b) => new Color(c.r, c.g, b, c.a);
+        public static Color WithAlpha(this Color c, float a) => new Color(c.r, c.g, c.b, a);
         public static GUIStyle GetButton(Color normal, Color active)
         {
             var pair = new KeyValuePair<Color, Color>(normal, active);
@@ -69,6 +72,7 @@ namespace PeakCheat.Utilities
         {
             var construct = new LineConstructor(buttonCount, lineWidth, size);
             if (_linePositions.TryGetValue(construct, out var vectors)) return vectors;
+
             int row = 0;
             float currentWidth = 0f;
             List<Vector2> list = new List<Vector2>();
@@ -124,6 +128,27 @@ namespace PeakCheat.Utilities
             }
 
             return result;
+        }
+        public static async Task<Texture2D?> CaptureImage(this Camera camera)
+        {
+            int x = Mathf.RoundToInt(Screen.width);
+            int y = Mathf.RoundToInt(Screen.height);
+            var render = RenderTexture.GetTemporary(x, y, 24, RenderTextureFormat.ARGB32);
+            if (render == null) return null;
+            camera.targetTexture = render;
+            camera.Render();
+            var request = UnityEngine.Rendering.AsyncGPUReadback.Request(render, 0, TextureFormat.RGBA32);
+            while (!request.done) await Task.Delay(1);
+            camera.targetTexture = null;
+            RenderTexture.ReleaseTemporary(render);
+            render = null;
+            if (request.hasError) return null;
+            var data = request.GetData<byte>();
+            if (data.Length == 0) return null;
+            var texture = new Texture2D(x, y, TextureFormat.RGBA32, false);
+            texture.LoadRawTextureData(data);
+            texture.Apply();
+            return texture;
         }
     }
 }

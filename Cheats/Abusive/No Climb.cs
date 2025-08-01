@@ -14,7 +14,7 @@ namespace PeakCheat.Cheats.Abusive
                 if (player.GameCharacter.data.isClimbingAnything)
                 {
                     player.Fall();
-                    player.SetVelocity(Vector3.down * 30f);
+                    player.SetVelocity((player.HeadTransform?.forward?? Vector3.up) * -3f);
                 }
         }
     }

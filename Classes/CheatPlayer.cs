@@ -26,10 +26,12 @@ namespace PeakCheat.Classes
         public Character GameCharacter;
         public Photon.Realtime.Player PhotonPlayer;
         public CharacterData? CharacterData => GameCharacter?.data;
+        public Transform? HeadTransform => GameCharacter.refs.ragdoll.partDict[BodypartType.Head]?.transform;
+        public Transform? BodyTransform => GameCharacter.refs.ragdoll.partDict[BodypartType.Hip]?.transform;
         public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? true;
-        public bool Alive => CharacterData?.dead?? false;
-        public bool Dead => !Alive;
+        public bool Alive => !Dead;
+        public bool Dead => CharacterData?.dead ?? false;
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
         public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
         public static implicit operator CheatPlayer(Photon.Realtime.Player player) => player.ToCheatPlayer();

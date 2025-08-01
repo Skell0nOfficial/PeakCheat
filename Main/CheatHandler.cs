@@ -14,7 +14,7 @@ namespace PeakCheat.Main
         public static Cheat[] Cheats => _cheats.Values.SelectMany(X => X).Where(C => !C.Hide()).ToArray();
         private static Rect _rect = Rect.zero;
         private static bool _show = false;
-        public override void Start()
+        void CheatBehaviour.Start()
         {
             string cheatNames = "PeakCheat.Cheats";
             foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
@@ -31,7 +31,7 @@ namespace PeakCheat.Main
                     _cheats.Add(category, new Cheat[] { cheat }.ToList());
                 }
         }
-        public override void Update()
+        void CheatBehaviour.Update()
         {
             if (BepInEx.UnityInput.Current.GetKeyDown(KeyCode.F2))
                 _show = !_show;
@@ -39,7 +39,7 @@ namespace PeakCheat.Main
                 if (cheat.Enabled)
                     cheat.Method();
         }
-        public override void RenderUI()
+        void CheatBehaviour.RenderUI()
         {
             if (!_show) return;
             var cheats = Cheats;
