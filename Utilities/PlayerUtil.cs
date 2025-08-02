@@ -30,7 +30,6 @@ namespace PeakCheat.Utilities
             return cheatPlayer;
         }
         public static PhotonView FromPlayer(this CheatPlayer player) => player.View;
-        public static bool IsLocal(this CheatPlayer player) => player.PhotonPlayer.IsLocal;
         public static Vector3 Position(this CheatPlayer player) => player.Position;
         public static bool InRange(this CheatPlayer player, float range) =>
             Vector3.Distance(UnityUtil.CurrentPosition(), player.Position()) <= range;
@@ -52,15 +51,16 @@ namespace PeakCheat.Utilities
         public static Vector3 NaN => Vector3.one * (float.MaxValue / 10f);
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
-        public static void PlayerRPC(this CheatPlayer player, string RPC, object data) => PlayerRPC(player, RPC, RpcTarget.All, new object[] { data });
-        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object data) => PlayerRPC(player, RPC, target, new object[] { data });
+        public static void PlayerRPC(this CheatPlayer player, string RPC, object data) => PlayerRPC(player, RPC, RpcTarget.All, data);
+        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object data) => PlayerRPC(player, RPC, target, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, object[] data) => PlayerRPC(player, RPC, RpcTarget.All, data);
-        public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target, object[] data) => player.View?.RPC(RPC, target, data);
-        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object[] data) => player.View?.RPC(RPC, target, data);
+        public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target, params object[] data) => player.View?.RPC(RPC, target, data);
+        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, params object[] data) => player.View?.RPC(RPC, target, data);
         public static bool GetMaster() => PhotonNetwork.SetMasterClient(PhotonNetwork.MasterClient);
         public static void Kill(this CheatPlayer player) => PlayerRPC(player, "RPCA_Die", player.Position);
         public static async void Destroy(this CheatPlayer player)
         {
+            if (!TimeUtil.CheckTime($"Destroy:{player.Name}", 3f)) return;
             if (!PhotonNetwork.IsMasterClient && !GetMaster())
             {
                 LogUtil.Log(false, "[Destroy] Could not get master client!");
@@ -74,7 +74,7 @@ namespace PeakCheat.Utilities
         }
         public static void Fling(this CheatPlayer player)
         {
-            if (!TimeUtil.CheckTime(.3f))
+            if (!TimeUtil.CheckTime($"Fling:{player.Name}", .3f))
             {
                 LogUtil.Log(false, "Rejecting fling (time delay returned false)");
                 return;
@@ -101,6 +101,13 @@ namespace PeakCheat.Utilities
             LogUtil.Log($"Reviving Player \"{player.Name}\"..");
             PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { CheatPlayer.LocalPlayer.Position, true });
         }
+        public static void FreezeMovement(this CheatPlayer player) => FreezeMovement(player, 1f);
+        public static void FreezeMovement(this CheatPlayer player, float seconds)
+        {
+            if (!TimeUtil.CheckTime($"Freeze:{player.Name}", seconds)) return;
+            for (float i = 0f; i <= seconds; i += .1f)
+                GeneralUtil.DelayInvoke(() => SetVelocity(player, Vector3.zero), i);
+        }
         public static void Teleport(this CheatPlayer player, Vector3 pos) => Teleport(player, pos, false);
         public static void Teleport(this CheatPlayer player, Vector3 pos, bool rpc)
         {
@@ -111,7 +118,7 @@ namespace PeakCheat.Utilities
             }
             TeleportUtil.Teleport(player, pos);
         }
-        public static void SpazScreen(this CheatPlayer player) => PlayerRPC(player, "RPCA_FallWithScreenShake", player, new object[] { .1f, float.MaxValue });
+        public static void SpazScreen(this CheatPlayer player) => PlayerRPC(player, "RPCA_FallWithScreenShake", player, .1f, float.MaxValue);
         public static void SetVelocity(this CheatPlayer player, Vector3 velocity)
         {
             foreach (var part in PlayerHandler.GetPlayer(player).character.refs.ragdoll.partDict.Keys)
@@ -122,10 +129,13 @@ namespace PeakCheat.Utilities
             if (!TimeUtil.CheckTime(1f)) return;
             var t = Character.localCharacter.refs.ragdoll.partDict[BodypartType.Head].transform;
             if (!Physics.Raycast(t.position + (t.forward * 1f), Vector3.down, out var cast, 25f)) return;
-            foreach (var p in AllPlayers())
-                if (!p.IsLocal())
+            for (int i = 0; i < 2700; i++)
+                Character.localCharacter.photonView.RPC("ReceivePoint_Rpc", Photon.Pun.RpcTarget.AllBuffered, cast.point, Vector3.up);
+            var players = OtherPlayers();
+            foreach (var p in players)
+                if (p != player || !players.Any(p => p != player))
                     for (int i = 0; i < 1000; i++)
-                        PlayerRPC(p, "ReceivePoint_Rpc", player, new object[] { cast.point, Vector3.down });
+                        PlayerRPC(p, "ReceivePoint_Rpc", player, cast.point, Vector3.down);
         }
         #endregion
     }

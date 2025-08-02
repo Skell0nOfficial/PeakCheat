@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace PeakCheat.Utilities
 {
@@ -20,6 +21,15 @@ namespace PeakCheat.Utilities
             public float width;
             public Vector2 size;
         }
+        private static readonly Vector3[] _directions = new Vector3[]
+        {
+            Vector3.up,
+            Vector3.down,
+            Vector3.left,
+            Vector3.right,
+            Vector3.forward,
+            Vector3.back
+        };
         private static Dictionary<LineConstructor, Vector2[]> _linePositions = new Dictionary<LineConstructor, Vector2[]>();
         private static Dictionary<Color, Texture2D> _cachedTextures = new Dictionary<Color, Texture2D>();
         private static Dictionary<KeyValuePair<Color, Color>, GUIStyle> _styles = new Dictionary<KeyValuePair<Color, Color>, GUIStyle>();
@@ -129,6 +139,28 @@ namespace PeakCheat.Utilities
 
             return result;
         }
+        public static Vector3 ModifyDirection(Vector3 dir, Vector3 pos, float distance)
+        {
+            bool CheckHit(Vector3 direction) => Physics.Raycast(pos, direction.normalized, distance, HelperFunctions.LayerType.Map.ToLayerMask());
+            if (CheckHit(dir))
+            {
+                foreach (var dir1 in _directions)
+                {
+                    if (CheckHit(dir1))
+                        foreach (var dir2 in _directions)
+                        {
+                            if (dir1 == dir2) continue;
+                            var newDir = dir1 + dir2;
+                            if (newDir == Vector3.zero) continue;
+                            if (!CheckHit(newDir))
+                                return newDir;
+                        }
+                    else return dir1;
+                }
+                return Vector3.zero;
+            }
+            return dir;
+        }
         public static async Task<Texture2D?> CaptureImage(this Camera camera)
         {
             int x = Mathf.RoundToInt(Screen.width);
@@ -137,7 +169,7 @@ namespace PeakCheat.Utilities
             if (render == null) return null;
             camera.targetTexture = render;
             camera.Render();
-            var request = UnityEngine.Rendering.AsyncGPUReadback.Request(render, 0, TextureFormat.RGBA32);
+            var request = AsyncGPUReadback.Request(render, 0, TextureFormat.RGBA32);
             while (!request.done) await Task.Delay(1);
             camera.targetTexture = null;
             RenderTexture.ReleaseTemporary(render);

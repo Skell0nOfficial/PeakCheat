@@ -13,6 +13,8 @@ namespace PeakCheat.Utilities
             await Task.Delay(Mathf.RoundToInt(delay * 1000f));
             action();
         }
+        public static T[] SingleArray<T>(this T obj) => new T[] { obj };
+        public static T[] SingleList<T>(this T obj) => SingleArray(obj);
         public static string Signature(this StackFrame frame)
         {
             var method = frame.GetMethod();

@@ -31,6 +31,7 @@ namespace PeakCheat.Classes
         public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? true;
         public bool Alive => !Dead;
+        public bool IsLocal => GameCharacter?.IsLocal?? PhotonPlayer?.IsLocal?? false;
         public bool Dead => CharacterData?.dead ?? false;
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
         public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
