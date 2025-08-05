@@ -2,7 +2,7 @@
 {
     public abstract class Cheat
     {
-        public virtual string Name => "Untitled Cheat";
+        public virtual string Name => GetType()?.Name?? "Untitled Cheat";
         public virtual string Description => "Empty Description";
         public virtual void Method() {}
         public virtual void Enable() {}

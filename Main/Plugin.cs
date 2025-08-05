@@ -13,7 +13,6 @@ namespace PeakCheat.Main
         public Harmony? Patcher;
         public void Awake()
         {
-
             (Patcher = new Harmony(Info.Metadata.GUID)).PatchAll();
             _cheatObject = new GameObject(Info.Metadata.Name, typeof(Main));
             _cheatObject.hideFlags = HideFlags.HideAndDontSave;

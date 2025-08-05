@@ -33,6 +33,19 @@ namespace PeakCheat.Classes
         public bool Alive => !Dead;
         public bool IsLocal => GameCharacter?.IsLocal?? PhotonPlayer?.IsLocal?? false;
         public bool Dead => CharacterData?.dead ?? false;
+        public bool GetItem(out Item? item)
+        {
+            var currentItem = CharacterData?.currentItem;
+
+            if (currentItem != null)
+            {
+                item = currentItem;
+                return true;
+            }
+
+            item = null;
+            return false;
+        }
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
         public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
         public static implicit operator CheatPlayer(Photon.Realtime.Player player) => player.ToCheatPlayer();

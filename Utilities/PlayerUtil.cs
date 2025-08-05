@@ -108,6 +108,21 @@ namespace PeakCheat.Utilities
             for (float i = 0f; i <= seconds; i += .1f)
                 GeneralUtil.DelayInvoke(() => SetVelocity(player, Vector3.zero), i);
         }
+        public static void DeleteItem(this CheatPlayer player)
+        {
+            if (!player.GetItem(out var item))
+            {
+                LogUtil.Log(false, $"Couldnt force consume Item (Instance is null)");
+                return;
+            }
+            if (item == null)
+            {
+                LogUtil.Log(false, $"Couldnt force consume Item (GetItem = true, Instance is null)");
+                return;
+            }
+            item.photonView.RPC("Consume", RpcTarget.All, -1);
+            LogUtil.Log($"Force Consumed Item-Instance \"{item.name}\" for player: {player.Name}");
+        }
         public static void Teleport(this CheatPlayer player, Vector3 pos) => Teleport(player, pos, false);
         public static void Teleport(this CheatPlayer player, Vector3 pos, bool rpc)
         {
@@ -127,15 +142,6 @@ namespace PeakCheat.Utilities
         public static void Crash(this CheatPlayer player)
         {
             if (!TimeUtil.CheckTime(1f)) return;
-            var t = Character.localCharacter.refs.ragdoll.partDict[BodypartType.Head].transform;
-            if (!Physics.Raycast(t.position + (t.forward * 1f), Vector3.down, out var cast, 25f)) return;
-            for (int i = 0; i < 2700; i++)
-                Character.localCharacter.photonView.RPC("ReceivePoint_Rpc", Photon.Pun.RpcTarget.AllBuffered, cast.point, Vector3.up);
-            var players = OtherPlayers();
-            foreach (var p in players)
-                if (p != player || !players.Any(p => p != player))
-                    for (int i = 0; i < 1000; i++)
-                        PlayerRPC(p, "ReceivePoint_Rpc", player, cast.point, Vector3.down);
         }
         #endregion
     }

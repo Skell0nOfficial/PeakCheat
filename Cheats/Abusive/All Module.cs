@@ -1,9 +1,6 @@
 ﻿using PeakCheat.Classes;
 using PeakCheat.Utilities;
 using Sirenix.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace PeakCheat.Cheats.Abusive
 {
