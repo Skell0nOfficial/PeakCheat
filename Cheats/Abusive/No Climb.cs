@@ -1,6 +1,5 @@
 ﻿using PeakCheat.Classes;
 using PeakCheat.Utilities;
-using UnityEngine;
 
 namespace PeakCheat.Cheats.Abusive
 {
@@ -12,10 +11,7 @@ namespace PeakCheat.Cheats.Abusive
         {
             foreach (var player in PlayerUtil.OtherPlayers())
                 if (player.GameCharacter.data.isClimbingAnything)
-                {
-                    player.Fall();
-                    player.SetVelocity((player.HeadTransform?.forward?? Vector3.up) * -3f);
-                }
+                    player.Fall(.1f);
         }
     }
 }

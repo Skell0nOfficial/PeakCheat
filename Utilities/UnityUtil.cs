@@ -52,6 +52,7 @@ namespace PeakCheat.Utilities
         public static Color WithGreen(this Color c, float g) => new Color(c.r, g, c.b, c.a);
         public static Color WithBlue(this Color c, float b) => new Color(c.r, c.g, b, c.a);
         public static Color WithAlpha(this Color c, float a) => new Color(c.r, c.g, c.b, a);
+        public static float Brightness(this Color c, bool withAlpha) => (c.r + c.g + c.b + (withAlpha? c.a: 0f)) / (withAlpha? 4f: 3f);
         public static GUIStyle GetButton(Color normal, Color active)
         {
             var pair = new KeyValuePair<Color, Color>(normal, active);
@@ -62,6 +63,7 @@ namespace PeakCheat.Utilities
                 style = new GUIStyle(GUI.skin.button);
                 ForEachStates(style, (Style, Active) => Style.background = Active ? a : n);
                 style.richText = true;
+                _styles.Add(pair, style);
             }
 
             return style;
@@ -69,12 +71,19 @@ namespace PeakCheat.Utilities
         public static Texture2D FromColor(this Color c)
         {
             if (_cachedTextures.TryGetValue(c, out var texture)) return texture;
+            
+            int size = 250;
+            texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            texture.LoadImage(Files.ButtonTexture);
+            var pixels = texture.GetPixels();
+            var newColors = new Color[pixels.Length];
 
-            texture = new Texture2D(1, 1);
-            texture.SetPixel(0, 0, c);
+            for (int i = 0; i < pixels.Length; i++)
+                newColors[i] = pixels[i].Brightness(false) > 0.3f ? Color.clear : c;
+
+            texture.SetPixels(newColors);
             texture.Apply();
-
-            _cachedTextures.Add(c, texture);
+            _cachedTextures[c] = texture;
             return texture;
         }
         public static Vector3 CurrentPosition() => Character.localCharacter.Center;
@@ -139,7 +148,7 @@ namespace PeakCheat.Utilities
 
             return result;
         }
-        public static Vector3 ModifyDirection(Vector3 dir, Vector3 pos, float distance)
+        public static Vector3 ModifyDirection(this Vector3 dir, Vector3 pos, float distance)
         {
             bool CheckHit(Vector3 direction) => Physics.Raycast(pos, direction.normalized, distance, HelperFunctions.LayerType.Map.ToLayerMask());
             if (CheckHit(dir))
@@ -147,6 +156,7 @@ namespace PeakCheat.Utilities
                 foreach (var dir1 in _directions)
                 {
                     if (CheckHit(dir1))
+                    {
                         foreach (var dir2 in _directions)
                         {
                             if (dir1 == dir2) continue;
@@ -155,21 +165,26 @@ namespace PeakCheat.Utilities
                             if (!CheckHit(newDir))
                                 return newDir;
                         }
-                    else return dir1;
+                        return Vector2.zero;
+                    }
+                    return dir1;
                 }
                 return Vector3.zero;
             }
             return dir;
         }
+        public static Vector2 ScreenRect() => new Vector2(Screen.width, Screen.height);
+        public static float ScreenSize() => ScreenRect().magnitude;
         public static async Task<Texture2D?> CaptureImage(this Camera camera)
         {
-            int x = Mathf.RoundToInt(Screen.width);
-            int y = Mathf.RoundToInt(Screen.height);
+            var x = Mathf.RoundToInt(Screen.width);
+            var y = Mathf.RoundToInt(Screen.height);
             var render = RenderTexture.GetTemporary(x, y, 24, RenderTextureFormat.ARGB32);
             if (render == null) return null;
             camera.targetTexture = render;
             camera.Render();
-            var request = AsyncGPUReadback.Request(render, 0, TextureFormat.RGBA32);
+            var format = TextureFormat.RGBA32;
+            var request = AsyncGPUReadback.Request(render, 0, format);
             while (!request.done) await Task.Delay(1);
             camera.targetTexture = null;
             RenderTexture.ReleaseTemporary(render);
@@ -177,7 +192,7 @@ namespace PeakCheat.Utilities
             if (request.hasError) return null;
             var data = request.GetData<byte>();
             if (data.Length == 0) return null;
-            var texture = new Texture2D(x, y, TextureFormat.RGBA32, false);
+            var texture = new Texture2D(x, y, format, false);
             texture.LoadRawTextureData(data);
             texture.Apply();
             return texture;

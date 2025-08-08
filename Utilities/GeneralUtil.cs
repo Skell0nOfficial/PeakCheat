@@ -23,13 +23,45 @@ namespace PeakCheat.Utilities
 
             return string.Join("\n", new object[]
             {
-                frame.GetFileLineNumber(),
                 method.Name,
                 type.Name,
                 type.Namespace,
                 args.Length,
-                string.Join('.', args.Select(a => a.Name))
+                string.Join('.', args.Select(a => a.ParameterType.Name))
             });
         }
+        public static int Compute(string s)
+        {
+            if (s == null || s.Length == 0) return 0;
+
+            int length = s.Length;
+            uint num = (uint)length;
+            length >>= 1;
+            int num3 = 0;
+            while (length > 0)
+            {
+                num += s[num3];
+                uint num4 = ((uint)s[num3 + 1] << 11) ^ num;
+                num = (num << 16) ^ num4;
+                num3 += 2;
+                num += num >> 11;
+                length--;
+            }
+
+            if ((length & 1) == 1)
+            {
+                num += s[num3];
+                num ^= num << 11;
+                num += num >> 17;
+            }
+
+            num ^= num << 3;
+            num += num >> 5;
+            num ^= num << 4;
+            num += num >> 17;
+            num ^= num << 25;
+            return (int)(num + (num >> 6));
+        }
+        public static StackFrame GetFrame() => new StackTrace().GetFrame(2);
     }
 }

@@ -379,4 +379,21 @@
       <HintPath>D:\SteamLibrary\steamapps\common\PEAK\PEAK_Data\Managed\Zorro.UI.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+
+	<ItemGroup>
+	  <Compile Update="Files.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Files.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Files.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Files.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
+	</ItemGroup>
 </Project>
