@@ -10,8 +10,12 @@ namespace PeakCheat.Cheats.Movement
         public override string Description => "Lets your jump even while in the air";
         public override void Method()
         {
-            if (!UnityUtil.OnGround() && Input.GetKeyDown(KeyCode.Space))
-                PlayerUtil.PlayerRPC(CheatPlayer.LocalPlayer, "JumpRpc", false);
+            if (!UnityUtil.OnGround())
+            {
+                Character.GainFullStamina();
+                if (Input.GetKey(KeyCode.Space) && TimeUtil.CheckTime(.2f))
+                    PlayerUtil.Jump(CheatPlayer.LocalPlayer, true, false);
+            }
         }
     }
 }

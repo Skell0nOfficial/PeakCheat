@@ -6,9 +6,6 @@ namespace PeakCheat.Classes
     {
         public abstract string Name { get; }
         public virtual Color BGColor => Color.black;
-        public virtual void Render()
-        {
-
-        }
+        public virtual void Render(){}
     }
 }

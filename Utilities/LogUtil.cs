@@ -13,7 +13,7 @@ namespace PeakCheat.Utilities
         {
             if (_loggers.Count != 0) return;
             foreach (var level in Enum.GetValues(typeof(LogLevel)))
-                _loggers.Add((LogLevel)level, Logger.CreateLogSource($"PeakCheat:{level.ToString()}"));
+                _loggers.Add((LogLevel)level, Logger.CreateLogSource("PeakCheat"));
         }
         public static void Log(string message) => Log(0, message);
         public static void Log(bool error, string message) => Log(error? 2: 1, message);

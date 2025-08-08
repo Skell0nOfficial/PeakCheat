@@ -1,12 +1,11 @@
 ﻿using ExitGames.Client.Photon;
-using HarmonyLib;
 using PeakCheat.Classes;
 using Photon.Pun;
 using Photon.Realtime;
+using Sirenix.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace PeakCheat.Utilities
@@ -52,29 +51,33 @@ namespace PeakCheat.Utilities
         public static int GetID(this CheatPlayer player) => GeneralUtil.Compute(player.Name + (player.PhotonPlayer?.ActorNumber?? -1) + PhotonNetwork.CurrentRoom.Name);
         #endregion
         #region Scripts
-        [HarmonyPatch(typeof(Character), "RPCA_Die")]
-        private class DeathPatch
+        private class DeathPatch: CheatBehaviour
         {
             private static Dictionary<int, Vector3> _positions = new Dictionary<int, Vector3>();
-            public static Vector3 GetRevivePosition(CheatPlayer player)
+            void CheatBehaviour.Update() => AllPlayers().Where(P => P.Alive).ForEach(P => _positions[P.GetID()] = P.BodyTransform?.position?? Vector3.zero);
+            public static Vector3 GetDiedPos(CheatPlayer player)
             {
                 if (!_positions.TryGetValue(player.GetID(), out var pos))
-                    pos = player.Alive? (player.BodyTransform?.position??  Vector3.zero): Vector3.zero;
+                {
+                    pos = AllPlayers().First(P => P.Alive).Position + (Vector3.right * .7f) - (Vector3.up * .4f);
+                    _positions.Add(player.GetID(), pos);
+                }
+
                 return pos;
             }
-            private static void Prefix(Character __instance) => _positions[__instance.ToCheatPlayer().GetID()] = __instance.Center;
         }
         public static Vector3 NaN => Vector3.one * (float.MaxValue / 10f);
+        public static Vector3 GetDeathPosition(this CheatPlayer player) => DeathPatch.GetDiedPos(player);
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
         public static void PlayerRPC(this CheatPlayer player, string RPC, object data) => PlayerRPC(player, RPC, RpcTarget.All, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object data) => PlayerRPC(player, RPC, target, data);
-        public static void PlayerRPC(this CheatPlayer player, string RPC, object[] data) => PlayerRPC(player, RPC, RpcTarget.All, data);
+        public static void PlayerRPC(this CheatPlayer player, string RPC, params object[] data) => PlayerRPC(player, RPC, RpcTarget.All, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target, params object[] data) => player.View?.RPC(RPC, target, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, params object[] data) => player.View?.RPC(RPC, target, data);
         public static bool GetMaster() => PhotonNetwork.SetMasterClient(PhotonNetwork.LocalPlayer);
         public static void Kill(this CheatPlayer player) => PlayerRPC(player, "RPCA_Die", player.Position);
-        public static async void Destroy(this CheatPlayer player)
+        public static void Destroy(this CheatPlayer player)
         {
             if (!TimeUtil.CheckTime($"Destroy:{player.Name}", 3f)) return;
             if (!PhotonNetwork.IsMasterClient && !GetMaster())
@@ -82,10 +85,8 @@ namespace PeakCheat.Utilities
                 LogUtil.Log(false, "[Destroy] Could not get master client!");
                 return;
             }
-            LogUtil.Log($"Destroy {player.ToString()}..");
-            await Task.Delay(70);
+            LogUtil.Log($"Destroy {player}..");
             Faint(player);
-            await Task.Delay(600);
             PhotonNetwork.DestroyPlayerObjects(player.PhotonPlayer.ActorNumber, false);
         }
         public static void Fling(this CheatPlayer player)
@@ -110,20 +111,10 @@ namespace PeakCheat.Utilities
         public static void Fall(this CheatPlayer player, float seconds) => PlayerRPC(player, "RPCA_Fall", seconds);
         public static void Revive(this CheatPlayer player)
         {
-            if (!player.Dead)
-            {
-                LogUtil.Log(false, $"Attempted to Revive alive player \"{player.Name}\" ?");
-                return;
-            }
+            if (player.Alive) return;
+
             LogUtil.Log($"Reviving Player \"{player.Name}\"..");
-            PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { CheatPlayer.LocalPlayer.Position, true });
-        }
-        public static void FreezeMovement(this CheatPlayer player) => FreezeMovement(player, 1f);
-        public static void FreezeMovement(this CheatPlayer player, float seconds)
-        {
-            if (!TimeUtil.CheckTime($"Freeze:{player.Name}", seconds)) return;
-            for (float i = 0f; i <= seconds; i += .1f)
-                GeneralUtil.DelayInvoke(() => SetVelocity(player, Vector3.zero), i);
+            PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { GetDeathPosition(player), true });
         }
         public static void DeleteItem(this CheatPlayer player)
         {
@@ -153,31 +144,25 @@ namespace PeakCheat.Utilities
         public static void SpazScreen(this CheatPlayer player) => PlayerRPC(player, "RPCA_FallWithScreenShake", player, .1f, float.MaxValue);
         public static void SetVelocity(this CheatPlayer player, Vector3 velocity)
         {
-            foreach (var part in PlayerHandler.GetPlayer(player).character.refs.ragdoll.partDict.Keys)
+            foreach (var part in player.GameCharacter.refs.ragdoll.partList)
                 PlayerRPC(player, "RPCA_AddForceToBodyPart", new object[] { part, Vector3.zero, velocity * 30f });
         }
         public static void BreakGame(this CheatPlayer player)
         {
+            int num = 0;
             var RPCMethod = typeof(CharacterData).GetMethod("RPC_SyncOnJoin");
             object[] parameters = new object[RPCMethod.GetParameters().Count()];
-            int num = 0;
 
             foreach (var paramType in RPCMethod.GetParameters().Select(p => p.ParameterType))
-            {
-                if (paramType == typeof(bool))
-                    parameters[num] = true;
-                else if (paramType == typeof(bool[]))
-                    parameters[num] = Array.Empty<bool>();
-                else if (paramType == typeof(float))
-                    parameters[num] = 0f;
-                else if (paramType == typeof(Photon.Pun.PhotonView))
-                    parameters[num] = Character.localCharacter.photonView;
-                num++;
-            }
+                if (paramType == typeof(bool)) parameters[num++] = true;
+                else if (paramType == typeof(bool[])) parameters[num++] = Array.Empty<bool>();
+                else if (paramType == typeof(float)) parameters[num++] = 0f;
+                else if (paramType == typeof(PhotonView)) parameters[num++] = Character.localCharacter.photonView;
 
+            if (!ACDisabler.UsingAntiCheat(player)) Teleport(player, NaN);
             PlayerRPC(player, "RPC_SyncOnJoin", parameters);
         }
-        public static bool Crash(this CheatPlayer player) // PeakCheat.Utilities.PlayerUtil.Crash(PeakCheat.Classes.CheatPlayer.LocalPlayer);
+        public static bool Crash(this CheatPlayer player)
         {
             if (!TimeUtil.CheckTime(1f)) return false;
             var hash = new Hashtable();

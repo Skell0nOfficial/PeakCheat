@@ -1,4 +1,5 @@
 ﻿using PeakCheat.Classes;
+using PeakCheat.Patches;
 using PeakCheat.Utilities;
 using UnityEngine;
 
@@ -6,9 +7,28 @@ namespace PeakCheat.Main
 {
     public class UIHandler: MonoBehaviour, CheatBehaviour
     {
+        private static bool _opened = false;
+        public static bool GUIActive() => _opened;
+        void CheatBehaviour.Start()
+        {
+            foreach (var color in UnityUtil.EveryColor()) UnityUtil.FromColor(color, false);
+
+            LogUtil.Log("Generated color textures");
+        }
+        void CheatBehaviour.Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                _opened = !_opened;
+                CursorSettings.ShowCursor(_opened);
+                LogUtil.Log(_opened? "GUI Initialized": "Closed GUI");
+            }
+        }
         private void OnGUI()
         {
-            GUI.Button(new Rect(Event.current.mousePosition + (Vector2.one * -83f), new Vector2(120f, 80f)), "<b>Tester</b>", UnityUtil.GetButton(Color.black, (Color.white * .1f).WithAlpha(1f)));
+            if (!_opened) return;
+
+            // adding the actual UI tmrw (next commit)
         }
     }
 }

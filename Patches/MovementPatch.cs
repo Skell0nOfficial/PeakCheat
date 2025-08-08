@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using PeakCheat.Main;
 using UnityEngine;
 
 namespace PeakCheat.Patches
@@ -7,7 +8,7 @@ namespace PeakCheat.Patches
     internal class MovementPatch
     {
         private static bool _forceFreeze = false;
-        public static void Freeze(bool enable) => _forceFreeze = enable;
+        public static void Freeze(bool enable) => _forceFreeze |= enable;
         public static bool Prefix()
         {
             bool StopMovement = !CanMove();
@@ -16,7 +17,7 @@ namespace PeakCheat.Patches
         }
         private static bool CanMove()
         {
-            if (Cursor.visible || _forceFreeze) return GUIManager.instance.wheelActive;
+            if (UIHandler.GUIActive() || _forceFreeze) return false;
 
             return true;
         }

@@ -21,17 +21,19 @@ namespace PeakCheat.Utilities
             public float width;
             public Vector2 size;
         }
+        private static Vector2 _mousePos = Vector2.zero;
+        private static Color[] _colors = Array.Empty<Color>();
         private static readonly Vector3[] _directions = new Vector3[]
         {
-            Vector3.up,
-            Vector3.down,
             Vector3.left,
             Vector3.right,
             Vector3.forward,
-            Vector3.back
+            Vector3.back,
+            Vector3.up,
+            Vector3.down
         };
+        private static Dictionary<string, Texture2D> _cachedTextures = new Dictionary<string, Texture2D>();
         private static Dictionary<LineConstructor, Vector2[]> _linePositions = new Dictionary<LineConstructor, Vector2[]>();
-        private static Dictionary<Color, Texture2D> _cachedTextures = new Dictionary<Color, Texture2D>();
         private static Dictionary<KeyValuePair<Color, Color>, GUIStyle> _styles = new Dictionary<KeyValuePair<Color, Color>, GUIStyle>();
         public static void ForEachStates(this GUIStyle style, Action<GUIStyleState, bool> method)
         {
@@ -52,6 +54,24 @@ namespace PeakCheat.Utilities
         public static Color WithGreen(this Color c, float g) => new Color(c.r, g, c.b, c.a);
         public static Color WithBlue(this Color c, float b) => new Color(c.r, c.g, b, c.a);
         public static Color WithAlpha(this Color c, float a) => new Color(c.r, c.g, c.b, a);
+        public static Color[] EveryColor()
+        {
+            if (_colors.Length > 0) return _colors;
+
+            int num = 0;
+            int steps = 11;
+
+            _colors = new Color[steps * steps * steps * steps];
+
+            for (int red = 0; red < steps; red++)
+                for (int green = 0; green < steps; green++)
+                    for (int blue = 0; blue < steps; blue++)
+                        for (int alpha = 0; alpha < steps; alpha++)
+                            _colors[num++] = new Color(red * .1f, green * .1f, blue * .1f, alpha * .1f );
+
+            return _colors;
+
+        }
         public static float Brightness(this Color c, bool withAlpha) => (c.r + c.g + c.b + (withAlpha? c.a: 0f)) / (withAlpha? 4f: 3f);
         public static GUIStyle GetButton(Color normal, Color active)
         {
@@ -68,22 +88,39 @@ namespace PeakCheat.Utilities
 
             return style;
         }
-        public static Texture2D FromColor(this Color c)
+        public static Texture2D FromColor(this Color c) => FromColor(c, true);
+        public static Texture2D FromColor(this Color c, bool rounded)
         {
-            if (_cachedTextures.TryGetValue(c, out var texture)) return texture;
+            c.r = TenRound(c.r);
+            c.g = TenRound(c.g);
+            c.b = TenRound(c.b);
+            c.a = TenRound(c.a);
+
+            string key = c.ToString() + rounded.ToString();
+            if (_cachedTextures.TryGetValue(key, out var texture)) return texture;
             
             int size = 250;
-            texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            texture.LoadImage(Files.ButtonTexture);
-            var pixels = texture.GetPixels();
-            var newColors = new Color[pixels.Length];
 
-            for (int i = 0; i < pixels.Length; i++)
-                newColors[i] = pixels[i].Brightness(false) > 0.3f ? Color.clear : c;
+            if (rounded)
+            {
+                texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+                texture.LoadImage(Files.ButtonTexture);
+                var pixels = texture.GetPixels();
+                var newColors = new Color[pixels.Length];
 
-            texture.SetPixels(newColors);
+                for (int i = 0; i < pixels.Length; i++)
+                    newColors[i] = pixels[i].Brightness(false) > 0.3f ? Color.clear : c;
+
+                texture.SetPixels(newColors);
+            }
+            else
+            {
+                texture = new Texture2D(1, 1);
+                texture.SetPixel(1, 1, c);
+            }
+
             texture.Apply();
-            _cachedTextures[c] = texture;
+            _cachedTextures[key] = texture;
             return texture;
         }
         public static Vector3 CurrentPosition() => Character.localCharacter.Center;
@@ -113,7 +150,8 @@ namespace PeakCheat.Utilities
             _linePositions.Add(construct, array);
             return array;
         }
-        public static bool EvenTime() => ((int)((Time.time - (int)Time.time) * 10)) % 2 == 0;
+        public static float TenRound(float value) => Mathf.Round(value * 10f) / 10f;
+        public static bool EvenTime() => TenRound(Time.time - (int)Time.time) % 2 == 0;
         public static float Bounce(float ping, float pong, float speed) =>
             Mathf.Lerp(ping, pong, Mathf.PingPong(Time.time * speed, 1f));
         public static Vector3 Orbit(this Transform transform) => transform.position.Orbit();
@@ -150,7 +188,7 @@ namespace PeakCheat.Utilities
         }
         public static Vector3 ModifyDirection(this Vector3 dir, Vector3 pos, float distance)
         {
-            bool CheckHit(Vector3 direction) => Physics.Raycast(pos, direction.normalized, distance, HelperFunctions.LayerType.Map.ToLayerMask());
+            bool CheckHit(Vector3 direction) => Physics.Raycast(pos, direction.normalized, distance);
             if (CheckHit(dir))
             {
                 foreach (var dir1 in _directions)
@@ -174,6 +212,8 @@ namespace PeakCheat.Utilities
             return dir;
         }
         public static Vector2 ScreenRect() => new Vector2(Screen.width, Screen.height);
+        public static Vector2 MiddleScreenRect() => ScreenRect() / 2f;
+        public static Vector2 MousePos() => _mousePos = Vector2.Lerp(_mousePos, Event.current.mousePosition, Time.deltaTime * 7.4f);
         public static float ScreenSize() => ScreenRect().magnitude;
         public static async Task<Texture2D?> CaptureImage(this Camera camera)
         {

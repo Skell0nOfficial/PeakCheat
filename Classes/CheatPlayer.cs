@@ -26,10 +26,10 @@ namespace PeakCheat.Classes
         public Character GameCharacter;
         public Photon.Realtime.Player PhotonPlayer;
         public CharacterData? CharacterData => GameCharacter?.data;
-        public Transform? HeadTransform => GameCharacter.refs.ragdoll.partDict[BodypartType.Head]?.transform;
-        public Transform? BodyTransform => GameCharacter.refs.ragdoll.partDict[BodypartType.Hip]?.transform;
+        public Transform? HeadTransform => GameCharacter.refs.head?.transform;
+        public Transform? BodyTransform => GameCharacter.refs.hip?.transform;
         public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
-        public bool OnGround => CharacterData?.isGrounded?? true;
+        public bool OnGround => CharacterData?.isGrounded?? false;
         public bool Alive => !Dead;
         public bool IsLocal => GameCharacter?.IsLocal?? PhotonPlayer?.IsLocal?? false;
         public bool Dead => CharacterData?.dead ?? false;
@@ -47,10 +47,13 @@ namespace PeakCheat.Classes
             return false;
         }
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
-        public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
+        public override string ToString() => $"[{Name}] ({GetType().Name})";
         public static implicit operator CheatPlayer(Photon.Realtime.Player player) => player.ToCheatPlayer();
+        public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();
         public static implicit operator CheatPlayer(Character character) => character.ToCheatPlayer();
         public static implicit operator global::Player(CheatPlayer player) => player.GamePlayer;
+        public static implicit operator Character(CheatPlayer player) => player.GameCharacter;
+        public static implicit operator Vector3(CheatPlayer player) => player.Position;
         public static implicit operator Photon.Realtime.Player(CheatPlayer player) => player.PhotonPlayer;
         public static implicit operator PhotonView(CheatPlayer player) => player.View;
     }
