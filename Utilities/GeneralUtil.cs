@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +15,22 @@ namespace PeakCheat.Utilities
             action();
         }
         public static T[] SingleArray<T>(this T obj) => new T[] { obj };
-        public static T[] SingleList<T>(this T obj) => SingleArray(obj);
+        public static List<T> SingleList<T>(this T obj) => SingleArray(obj).ToList();
+        public static bool Any<T>(this IEnumerable<T> enumerable, Func<T, bool> func, out T value)
+        {
+            if (enumerable.Any(func))
+            {
+                value = enumerable.First(func);
+                return true;
+            }
+            value = default!;
+            return false;
+        }
+        public static T PickRandom<T>(this T[] array) => array[UnityEngine.Random.Range(0, array.Length)];
+        public static void AddIfNew<T>(this List<T> list, T value)
+        {
+            if (!list.Contains(value)) list.Add(value);
+        }
         public static string Signature(this StackFrame frame)
         {
             var method = frame.GetMethod();

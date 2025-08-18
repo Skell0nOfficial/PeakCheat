@@ -402,4 +402,9 @@
 	    <LastGenOutput>Files.Designer.cs</LastGenOutput>
 	  </EmbeddedResource>
 	</ItemGroup>
+
+
+	<ItemGroup>
+	  <Folder Include="Cheats\Abusive\" />
+	</ItemGroup>
 </Project>

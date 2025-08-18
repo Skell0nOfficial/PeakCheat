@@ -1,4 +1,4 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using PeakCheat.Patches;
 using PeakCheat.Utilities;
 
@@ -9,12 +9,15 @@ namespace PeakCheat.Cheats.Gameplay
     {
         public override string Name => "Immortality";
         public override string Description => "Grants you Immortality";
+        public override SceneType RequiredScene => SceneType.Level;
         public override void Enable() => FaintPatch.PassOut += Unfaint;
         public override void Disable() => FaintPatch.PassOut -= Unfaint;
         public override void Method()
         {
             CheatPlayer.LocalPlayer.Revive();
             Character.localCharacter.data.fallSeconds = 0f;
+            if (Character.localCharacter.refs.afflictions.statusSum != 0)
+                CheatPlayer.LocalPlayer.ResetStatuses();
         }
         public static void Unfaint(Character character)
         {

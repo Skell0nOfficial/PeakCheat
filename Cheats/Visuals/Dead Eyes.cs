@@ -1,4 +1,4 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using PeakCheat.Utilities;
 
 namespace PeakCheat.Cheats.Visuals
@@ -7,6 +7,7 @@ namespace PeakCheat.Cheats.Visuals
     {
         public override string Name => "Dead Eyes";
         public override string Description => "Makes your eyes cross as if you were dead";
+        public override SceneType RequiredScene => SceneType.Airport;
         public override void Method()
         {
             if (TimeUtil.CheckTime(1f)) CheatPlayer.LocalPlayer.SetDeadEyes(true);

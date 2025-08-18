@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using PeakCheat.Classes;
+using PeakCheat.Types;
 using Photon.Realtime;
 
 namespace PeakCheat.Patches
@@ -10,8 +10,7 @@ namespace PeakCheat.Patches
         public static void Postfix(ExitGames.Client.Photon.EventData photonEvent)
         {
             foreach (var eventCallback in Main.BehaviourHandler.TryGetBehaviours<EventBehaviour>())
-                if (eventCallback != null)
-                    eventCallback.OnEvent(photonEvent.Code, photonEvent.Sender, photonEvent.CustomData);
+                eventCallback?.OnEvent(photonEvent.Code, photonEvent.Sender, photonEvent.CustomData);
         }
     }
 }

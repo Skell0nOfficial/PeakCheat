@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Diagnostics;
 using UnityEngine;
 
 namespace PeakCheat.Utilities
@@ -18,5 +17,7 @@ namespace PeakCheat.Utilities
             }
             return false;
         }
+        public static void SetTime(float delay) => _times[GeneralUtil.GetFrame().Signature()] = Time.time + delay;
+        public static void SetTime(string key, float delay) => _times[key] = Time.time + delay;
     }
 }

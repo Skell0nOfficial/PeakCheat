@@ -1,4 +1,4 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;

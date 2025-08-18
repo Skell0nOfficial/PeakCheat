@@ -1,4 +1,4 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using UnityEngine;
 
 namespace PeakCheat.Cheats.Movement
@@ -7,6 +7,7 @@ namespace PeakCheat.Cheats.Movement
     {
         public override string Name => "Insta Climb";
         public override string Description => "Makes you climb instantly!";
+        public override SceneType RequiredScene => SceneType.Airport;
         public override void Method()
         {
             var c = CheatPlayer.LocalPlayer.GameCharacter;

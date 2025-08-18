@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using PeakCheat.Classes;
+using PeakCheat.Types;
 using PeakCheat.Utilities;
 using System.Collections.Generic;
 
@@ -28,7 +28,7 @@ namespace PeakCheat.Patches
                 return;
             }
 
-            LogUtil.Log(false, $"[DataPatch] Couldnt get Character Instance for syncer: {__instance.name}");
+            LogUtil.Log(false, $"Couldnt get Character Instance for syncer: {__instance.name}");
         }
     }
 }

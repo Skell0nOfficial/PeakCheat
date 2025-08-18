@@ -1,4 +1,4 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using PeakCheat.Utilities;
 using UnityEngine;
 using Zorro.Core;

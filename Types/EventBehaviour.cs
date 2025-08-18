@@ -1,4 +1,4 @@
-﻿namespace PeakCheat.Classes
+﻿namespace PeakCheat.Types
 {
     public interface EventBehaviour: CheatBehaviour
     {

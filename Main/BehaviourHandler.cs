@@ -1,4 +1,5 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
+using PeakCheat.Utilities;
 using Sirenix.Utilities;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ namespace PeakCheat.Main
         private static List<CheatBehaviour> _behaviours = new List<CheatBehaviour>();
         public static CheatBehaviour[] Behaviours => _behaviours.ToArray();
         public static Dictionary<Type, CheatBehaviour> BehaviourDict => Behaviours.ToDictionary(C => C.GetType());
-        public bool TryGetBehaviour<T>(out T behaviour) where T : CheatBehaviour
+        public static bool TryGetBehaviour<T>(out T behaviour) where T : CheatBehaviour
         {
             if (BehaviourDict.TryGetValue(typeof(T), out var _behaviour))
             {
@@ -26,6 +27,7 @@ namespace PeakCheat.Main
         }
         private bool CreateBehaviour(Type type, out CheatBehaviour? behaviour)
         {
+            if (BehaviourDict.TryGetValue(type, out behaviour)) return true;
             if (!type.IsSubclassOf(typeof(MonoBehaviour)))
             {
                 Debug.Log($"Initialized CheatBehaviour for: {type.Name}");
@@ -43,9 +45,14 @@ namespace PeakCheat.Main
         public void Awake()
         {
             foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
-                if (type.GetInterface("CheatBehaviour") != null && !type.IsAbstract && !type.IsInterface && CreateBehaviour(type, out var behaviour) && behaviour != null)
-                    _behaviours.Add(behaviour);
-            Behaviours.ForEach(C => C.Start());
+                if (type.GetInterface("CheatBehaviour") != null &&
+                    !type.IsAbstract &&
+                    !type.IsInterface && 
+                    CreateBehaviour(type, out var result) && 
+                    result is CheatBehaviour behaviour)
+                    _behaviours.AddIfNew(behaviour);
+            Behaviours.Where(C => !C.DelayStart()).ForEach(C => C.Start());
+            Behaviours.Where(C => C.DelayStart()).ForEach(C => C.Start());
         }
         public void Start() => Behaviours.ForEach(C => C.OnLoad());
         public void Update() => Behaviours.ForEach(C => C.Update());

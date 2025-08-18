@@ -1,7 +1,5 @@
-﻿using ExitGames.Client.Photon;
-using PeakCheat.Classes;
+﻿using PeakCheat.Types;
 using Photon.Pun;
-using Photon.Realtime;
 using Sirenix.Utilities;
 using System;
 using System.Collections.Generic;
@@ -13,7 +11,7 @@ namespace PeakCheat.Utilities
     public static class PlayerUtil
     {
         #region Utilities
-        private static Dictionary<global::Player, CheatPlayer> _players = new Dictionary<Player, CheatPlayer>();
+        private static Dictionary<global::Player, CheatPlayer> _players = new Dictionary<global::Player, CheatPlayer>();
         public static CheatPlayer[] AllPlayers() => PlayerHandler.GetAllPlayers().Select(ToCheatPlayer).ToArray();
         public static CheatPlayer[] OtherPlayers() => AllPlayers().Where(P => !P.PhotonPlayer.IsLocal).ToArray();
         public static global::Player ToPlayer(this Photon.Realtime.Player player) => PlayerHandler.GetPlayer(player);
@@ -48,13 +46,13 @@ namespace PeakCheat.Utilities
             photonPlayer = null;
             return false;
         }
-        public static int GetID(this CheatPlayer player) => GeneralUtil.Compute(player.Name + (player.PhotonPlayer?.ActorNumber?? -1) + PhotonNetwork.CurrentRoom.Name);
+        public static int GetID(this CheatPlayer player) => GeneralUtil.Compute(player.Name + (player.PhotonPlayer?.ActorNumber ?? -1) + (PhotonNetwork.CurrentRoom?.Name ?? "null"));
         #endregion
         #region Scripts
-        private class DeathPatch: CheatBehaviour
+        private class DeathPatch : CheatBehaviour
         {
             private static Dictionary<int, Vector3> _positions = new Dictionary<int, Vector3>();
-            void CheatBehaviour.Update() => AllPlayers().Where(P => P.Alive).ForEach(P => _positions[P.GetID()] = P.BodyTransform?.position?? Vector3.zero);
+            void CheatBehaviour.Update() => AllPlayers().Where(P => P.Alive).ForEach(P => _positions[P.GetID()] = P.BodyTransform?.position ?? Vector3.zero);
             public static Vector3 GetDiedPos(CheatPlayer player)
             {
                 if (!_positions.TryGetValue(player.GetID(), out var pos))
@@ -71,36 +69,45 @@ namespace PeakCheat.Utilities
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
         public static void PlayerRPC(this CheatPlayer player, string RPC, object data) => PlayerRPC(player, RPC, RpcTarget.All, data);
-        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object data) => PlayerRPC(player, RPC, target, data);
+        public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, object data) => PlayerRPC(player, RPC, target, data.SingleArray());
         public static void PlayerRPC(this CheatPlayer player, string RPC, params object[] data) => PlayerRPC(player, RPC, RpcTarget.All, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target, params object[] data) => player.View?.RPC(RPC, target, data);
         public static void PlayerRPC(this CheatPlayer player, string RPC, CheatPlayer target, params object[] data) => player.View?.RPC(RPC, target, data);
-        public static bool GetMaster() => PhotonNetwork.SetMasterClient(PhotonNetwork.LocalPlayer);
-        public static void Kill(this CheatPlayer player) => PlayerRPC(player, "RPCA_Die", player.Position);
-        public static void Destroy(this CheatPlayer player)
+        public static void Kill(this CheatPlayer player)
         {
-            if (!TimeUtil.CheckTime($"Destroy:{player.Name}", 3f)) return;
-            if (!PhotonNetwork.IsMasterClient && !GetMaster())
+            if (player.Dead) return;
+            if (!ACDisabler.UsingAntiCheat(player))
             {
-                LogUtil.Log(false, "[Destroy] Could not get master client!");
+                PlayerRPC(player, "RPCA_Die", player.Position);
                 return;
             }
-            LogUtil.Log($"Destroy {player}..");
-            Faint(player);
-            PhotonNetwork.DestroyPlayerObjects(player.PhotonPlayer.ActorNumber, false);
+            for (int i = 0; i < 5; i++) PrefabUtil.SummonExplosion(player.Position());
+        }
+        public static void SlowKill(this CheatPlayer player)
+        {
+            if (!ACDisabler.UsingAntiCheat(player))
+            {
+                SetAllStatuses(player, 1.6F / Enum.GetValues(typeof(CharacterAfflictions.STATUSTYPE)).Length);
+                return;
+            }
+            LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
         }
         public static void Fling(this CheatPlayer player)
         {
-            if (!TimeUtil.CheckTime($"Fling:{player.Name}", .3f))
+            if (!TimeUtil.CheckTime($"Fling:{player.Name}", 2f))
             {
                 LogUtil.Log(false, "Rejecting fling (time delay returned false)");
                 return;
             }
-            for (int i = 0; i < 500; i++)
-                Jump(player, true, (i + 1) % 2 == 0);
+            for (int i = 0; i < 50; i++) SetVelocity(player, UnityUtil.RandomDirection().normalized * ((i + 1) * .5f));
         }
         public static void Jump(this CheatPlayer player, bool ForceJump, bool PalJump)
         {
+            if (ACDisabler.UsingAntiCheat(player))
+            {
+                LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
+                return;
+            }
             if (ForceJump)
                 PlayerRPC(player, "JumpRpc", PalJump);
             else if (player.OnGround) PlayerRPC(player, "JumpRpc", PalJump);
@@ -111,13 +118,27 @@ namespace PeakCheat.Utilities
         public static void Fall(this CheatPlayer player, float seconds) => PlayerRPC(player, "RPCA_Fall", seconds);
         public static void Revive(this CheatPlayer player)
         {
-            if (player.Alive) return;
+            if (ACDisabler.UsingAntiCheat(player))
+            {
+                LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
+                return;
+            }
 
-            LogUtil.Log($"Reviving Player \"{player.Name}\"..");
+            if (player.Alive)
+            {
+                if (player.PassedOut) PlayerRPC(player, "RPCA_UnPassOut");
+                return;
+            }
+
             PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { GetDeathPosition(player), true });
         }
         public static void DeleteItem(this CheatPlayer player)
         {
+            if (ACDisabler.UsingAntiCheat(player))
+            {
+                LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
+                return;
+            }
             if (!player.GetItem(out var item))
             {
                 LogUtil.Log(false, $"Couldnt force consume Item (Instance is null)");
@@ -136,71 +157,72 @@ namespace PeakCheat.Utilities
         {
             if (rpc)
             {
+                if (ACDisabler.UsingAntiCheat(player))
+                {
+                    LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
+                    return;
+                }
                 PlayerRPC(player, "WarpPlayerRPC", new object[] { pos, true });
                 return;
             }
             TeleportUtil.Teleport(player, pos);
         }
-        public static void SpazScreen(this CheatPlayer player) => PlayerRPC(player, "RPCA_FallWithScreenShake", player, .1f, float.MaxValue);
+        public static void SpazScreen(this CheatPlayer player)
+        {
+            if (!ACDisabler.UsingAntiCheat(player))
+            {
+                PlayerRPC(player, "RPCA_FallWithScreenShake", player, .1f, float.MaxValue);
+                return;
+            }
+            LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
+        }
         public static void SetVelocity(this CheatPlayer player, Vector3 velocity)
         {
             foreach (var part in player.GameCharacter.refs.ragdoll.partList)
-                PlayerRPC(player, "RPCA_AddForceToBodyPart", new object[] { part, Vector3.zero, velocity * 30f });
+                PlayerRPC(player, "RPCA_AddForceToBodyPart", new object[] { part.partType, Vector3.zero, velocity * 30f });
         }
         public static void BreakGame(this CheatPlayer player)
         {
+            for (int i = 0; i < 10; i++)
+                LogUtil.Log($"Breaking game for player: {player.Name}");
+            return;
             int num = 0;
             var RPCMethod = typeof(CharacterData).GetMethod("RPC_SyncOnJoin");
             object[] parameters = new object[RPCMethod.GetParameters().Count()];
 
             foreach (var paramType in RPCMethod.GetParameters().Select(p => p.ParameterType))
-                if (paramType == typeof(bool)) parameters[num++] = true;
+                if (paramType == typeof(bool)) parameters[num++] = false;
                 else if (paramType == typeof(bool[])) parameters[num++] = Array.Empty<bool>();
-                else if (paramType == typeof(float)) parameters[num++] = 0f;
-                else if (paramType == typeof(PhotonView)) parameters[num++] = Character.localCharacter.photonView;
+                else if (paramType == typeof(float)) parameters[num++] = 10f;
+                else if (paramType == typeof(PhotonView)) parameters[num++] = player.View;
 
+            PlayerRPC(player, "RPC_SyncOnJoin", player, parameters);
             if (!ACDisabler.UsingAntiCheat(player)) Teleport(player, NaN);
-            PlayerRPC(player, "RPC_SyncOnJoin", parameters);
         }
-        public static bool Crash(this CheatPlayer player)
+        public static void ResetStatuses(this CheatPlayer player) => SetAllStatuses(player, 0f);
+        public static void SetStatus(this CheatPlayer player, CharacterAfflictions.STATUSTYPE status, float value)
         {
-            if (!TimeUtil.CheckTime(1f)) return false;
-            var hash = new Hashtable();
-
-            hash.Add(0, "0_Items/Passport");
-            hash.Add(1, NaN);
-            hash.Add(2, Quaternion.identity);
-            hash.Add(3, 0);
-            hash.Add(4, 0.SingleArray());
-            hash.Add(5, Array.Empty<object>());
-            hash.Add(6, PhotonNetwork.ServerTimestamp);
-            hash.Add(7, 0);
-
-            bool worked = true;
-            var opts = new RaiseEventOptions()
-            {
-                Receivers = ReceiverGroup.All,
-                CachingOption = EventCaching.DoNotCache,
-                TargetActors = (player.PhotonPlayer?.ActorNumber ?? -1).SingleArray()
-            };
-
-            for (int i = 0; i < 1000; i++)
-            {
-                bool sent = PhotonNetwork.NetworkingClient.OpRaiseEvent(202, hash, opts, SendOptions.SendReliable);
-                if (!sent)
-                {
-                    worked = false;
-                    break;
-                }
-            }
+            var values = player.GameCharacter?.refs.afflictions?.currentStatuses ?? Array.Empty<float>();
+            if (values.Length == 0) return;
+            var array = new float[values.Length];
+            for (int i = 0; i < values.Length; i++)
+                array[i] = (i == (int)status) ? value : values[i];
+            PlayerRPC(player, "ApplyStatusesFromFloatArrayRPC", array);
+        }
+        public static void SetAllStatuses(this CheatPlayer player, float value)
+        {
+            var values = player.GameCharacter?.refs.afflictions?.currentStatuses ?? Array.Empty<float>();
+            if (values.Length == 0) return;
+            PlayerRPC(player, "ApplyStatusesFromFloatArrayRPC", values.Select(V => value).ToArray());
+        }
+        public static void Crash(this CheatPlayer player)
+        {
+            if (!TimeUtil.CheckTime($"Crash:{player.Name}", 1f)) return;
+            if (!PhotonNetwork.InstantiateItem("Dynamite", Vector3.zero, Quaternion.identity).TryGetComponent<PhotonView>(out var view)) return;
             
-            if (!worked)
-            {
-                LogUtil.Log(true, "Failed to send instantiate payload!");
-                return false;
-            }
-            LogUtil.Log("Sent Instantiate payload Successfully");
-            return true;
+            LogUtil.Log($"Crashing player: {player.Name}");
+            view.RPC("SetKinematicRPC", player.PhotonPlayer, true, player.Position, Quaternion.identity);
+            for (int i = 0; i < 1380; i++) view.RPC("RPC_Explode", player.PhotonPlayer);
         }
         #endregion
     }

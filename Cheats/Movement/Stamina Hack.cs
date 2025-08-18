@@ -1,4 +1,5 @@
-﻿using PeakCheat.Classes;
+﻿using PeakCheat.Types;
+using PeakCheat.Utilities;
 
 namespace PeakCheat.Cheats.Movement
 {
@@ -6,6 +7,12 @@ namespace PeakCheat.Cheats.Movement
     {
         public override string Name => "Stamina Hack";
         public override string Description => "Gives you infinite stamina";
-        public override void Method() => Character.GainFullStamina();
+        public override SceneType RequiredScene => SceneType.Airport;
+        public override void Method()
+        {
+            Character.GainFullStamina();
+            if (Character.localCharacter.refs.afflictions.statusSum != 0f)
+                CheatPlayer.LocalPlayer.ResetStatuses();
+        }
     }
 }
