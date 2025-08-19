@@ -105,7 +105,7 @@ namespace PeakCheat.Main
 
                 if (data.Open)
                 {
-                    var tabRect = new Rect(data.Position, data.Size);
+                    var tabRect = data.GetRect;
                     GUI.Window(GeneralUtil.Compute(tab.Name), tabRect, I => tab.Render(), "", TabBG);
                     var roofSize = new Vector2(tabRect.width, 30f);
                     var roofRect = new Rect(tabRect.position - (Vector2.up * roofSize.y), roofSize);

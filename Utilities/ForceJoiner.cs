@@ -1,8 +1,6 @@
 ﻿using PeakCheat.Types;
 using Steamworks;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -33,7 +31,7 @@ namespace PeakCheat.Utilities
             for (int i = 0; i < Steamworks.SteamFriends.GetFriendCount(Flag); i++)
             {
                 var ID = Steamworks.SteamFriends.GetFriendByIndex(i, Flag);
-                bool data = PeakCheat.Utilities.ForceJoiner.CanJoin(ID, out Friend, out string log);
+                bool data = CanJoin(ID, out Friend, out string log);
                 Debug.Log($"{log} ({(data ? "Success" : "Failure")})");
                 if (data)
                 {
@@ -123,7 +121,7 @@ namespace PeakCheat.Utilities
                 Application.OpenURL($"steam://joinlobby/{Steamworks.SteamUtils.GetAppID().m_AppId}/{lobbyID}/{owner}");
             }
         }
-        public static bool CanJoin(CSteamID FriendID, out string Friend, out string Log)
+        public bool CanJoin(CSteamID FriendID, out string Friend, out string Log)
         {
             bool result = CanJoin(FriendID, out string Nickname, out JoinResult joinResult);
 
@@ -140,7 +138,7 @@ namespace PeakCheat.Utilities
 
             return result;
         }
-        public static bool CanJoin(CSteamID FriendID, out string Name, out JoinResult Log)
+        public bool CanJoin(CSteamID FriendID, out string Name, out JoinResult Log)
         {
             Name = SteamFriends.GetFriendPersonaName(FriendID);
             if (SteamFriends.GetFriendGamePlayed(FriendID, out var dat))

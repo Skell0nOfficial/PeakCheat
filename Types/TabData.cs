@@ -8,5 +8,6 @@ namespace PeakCheat.Types
         public float Width, Height;
         public Vector2 Position, DragOffset;
         public Vector2 Size => new Vector2(Width, Height);
+        public Rect GetRect => new Rect(Position, Size);
     }
 }

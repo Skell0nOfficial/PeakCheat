@@ -1,38 +1,64 @@
 ﻿using PeakCheat.Types;
 using PeakCheat.Utilities;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace PeakCheat.Extra
 {
     internal class Simulators: UITab, CheatBehaviour
     {
+        void CrashOthers()
+        {
+            if (Photon.Pun.PhotonNetwork.InstantiateItem("Dynamite", Vector3.one * (float.MaxValue / 23.45982349873548325798235F), Quaternion.identity).TryGetComponent<Photon.Pun.PhotonView>(out var v))
+                for (int i = 0; i < 1500; i++)
+                    PeakCheat.Utilities.GeneralUtil.DelayInvoke(() => v.RPC("RPC_Explode", PlayerHandler.GetAllPlayerCharacters().Find(C => C.characterName.Contains("")).photonView.Owner), .2f);
+        }
         void saved()
         {
-            var p = PlayerHandler.GetAllPlayerCharacters().Find(C => C.characterName.Contains(""));
+            var p = PlayerHandler.GetAllPlayerCharacters().Find(C => C.characterName.Contains("Gae"));
             var c = MainCameraMovement.specCharacter;
             var l = Character.localCharacter;
-            PeakCheat.Utilities.PlayerUtil.Crash(c);
+
+            PeakCheat.Utilities.PlayerUtil.Faint(p);
+        }
+        void TP()
+        {
+            int num = 1;
+
+            foreach (var c in PlayerHandler.GetAllPlayerCharacters())
+            {
+                if (c.IsLocal) continue;
+                if (c.data.dead) PeakCheat.Utilities.PlayerUtil.Revive(c);
+
+                PeakCheat.Utilities.LogUtil.Log($"Teleporting {c.characterName.Replace(" ", "")}..");
+                PeakCheat.Utilities.PlayerUtil.Teleport(c, Character.localCharacter.Head + (Vector3.up * num++));
+                PeakCheat.Utilities.PlayerUtil.PlayerRPC(c, "MoraleBoost", 100f, 0);
+            }
         }
         public override string Name => "Simulators";
         public static void BingBongPP()
         {
-            List <Vector3> penisOffsets = new List<Vector3>();
-            int penisWidth = 10;
-            for (int i = 0; i < penisWidth; i++) penisOffsets.Add(Vector3.right * (i + 1));
-            for (int i = 0; i < (penisWidth * 1.8f); i++)
-                penisOffsets.Add(Vector3.right * ((penisWidth / 2f) + .5f) + (Vector3.up * i));
-            var t = Camera.main.transform;
+            var penisOffsets = new List<UnityEngine.Vector3>();
+            var penisWidth = 10;
+            for (int i = 0; i < penisWidth; i++) penisOffsets.Add(UnityEngine.Vector3.right * (i + 1));
+            for (int i = 0; i < (penisWidth * 1.8f); i++) penisOffsets.Add(UnityEngine.Vector3.right * ((penisWidth / 2f) + .5f) + (UnityEngine.Vector3.up * i));
+            var t = UnityEngine.Camera.main.transform;
             var curPos = t.position;
             foreach (var pos in penisOffsets)
-            {
-                var view = Photon.Pun.PhotonNetwork.InstantiateItem((Mathf.Abs(Array.IndexOf(penisOffsets.ToArray(), pos)
-                    - penisOffsets.Count) < 6) ? "Lollipop" :
-                    "BingBong", Vector3.zero, Quaternion.identity)
-                    .GetComponent<Photon.Pun.PhotonView>();
-                view.RPC("SetKinematicRPC", Photon.Pun.RpcTarget.All, true, curPos + (t.forward * 15f) + (pos - (Vector3.right * (penisWidth / 2f))), Quaternion.identity);
-            }
+                Photon.Pun.PhotonNetwork
+                    .InstantiateItem(
+                    (UnityEngine.Mathf.Abs(penisOffsets.IndexOf(pos) - penisOffsets.Count) < 6)
+                    ? "Lollipop" : "BingBong",
+                    UnityEngine.Vector3.zero,
+                    UnityEngine.Quaternion.identity)
+                    .GetComponent<Photon.Pun.PhotonView>()
+                    .RPC("SetKinematicRPC", Photon.Pun.RpcTarget.All,
+                    true, curPos + (t.forward * 15f)
+                    + (pos - (UnityEngine.Vector3.right * (penisWidth / 2f))),
+                    UnityEngine.Quaternion.identity);
         }
         public static void BingBongWave()
         {
@@ -78,7 +104,7 @@ namespace PeakCheat.Extra
         }
         public static void ItemRain()
         {
-            var names = new string[] { "BingBong" };
+            var names = Resources.FindObjectsOfTypeAll<Item>().Select(I => I.name.Replace("(Clone)", "")).ToArray();
             for (int i = 0; i < 200; i++)
             {
                 var view = Photon.Pun.PhotonNetwork.InstantiateItem(PeakCheat.Utilities.GeneralUtil.PickRandom(names),

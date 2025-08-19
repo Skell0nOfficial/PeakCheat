@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace PeakCheat.Utilities
         }
         public static T[] SingleArray<T>(this T obj) => new T[] { obj };
         public static List<T> SingleList<T>(this T obj) => SingleArray(obj).ToList();
+        public static bool Any<T>(this T[] array, Func<T, bool> func, out T value) => Any((IEnumerable<T>)array, func, out value);
         public static bool Any<T>(this IEnumerable<T> enumerable, Func<T, bool> func, out T value)
         {
             if (enumerable.Any(func))

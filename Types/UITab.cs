@@ -17,7 +17,6 @@ namespace PeakCheat.Types
         }
         public TabData Data;
         public virtual string Name => "Untitled Tab";
-        public virtual Color BGColor => Color.black;
         public virtual void Render() {}
     }
 }

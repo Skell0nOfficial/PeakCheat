@@ -55,6 +55,7 @@ namespace PeakCheat.Utilities
             return _previousFPS;
         }
         public static string Bold(this string str) => $"<b>{str}</b>";
+        public static string Bold(this string str, int size) => Size(Bold(str), size);
         public static string Size(this string str, int size) => $"<size={Mathf.RoundToInt(ScreenSize().magnitude / 22030 * (size * 10f))}>{str}</b>";
         public static Vector3[] GetDirections()
         {

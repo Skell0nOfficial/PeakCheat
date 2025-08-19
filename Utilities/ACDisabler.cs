@@ -15,6 +15,7 @@ namespace PeakCheat.Utilities
             "CherryUser",
             "CherryOwner"
         };
+        public const string ForcedPropertyKey = "PeakCheat::ForcedProperty";
         bool CheatBehaviour.DelayStart() => true;
         void CheatBehaviour.Start() => PhotonCallbacks.PropertiesUpdate += CheatCheck;
         public static bool UsingAntiCheat(CheatPlayer player) => _anticheatPlayers.Contains(player.PhotonPlayer?.ActorNumber?? -1);
@@ -34,7 +35,7 @@ namespace PeakCheat.Utilities
             {
                 if (props.TryGetValue(str, out var val) &&
                 val is string value &&
-                value != "PeakCheat::ForcedProperty")
+                value != ForcedPropertyKey)
                     return true;
                 return false;
             }, out var val))

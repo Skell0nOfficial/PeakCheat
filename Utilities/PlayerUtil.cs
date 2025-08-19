@@ -14,7 +14,6 @@ namespace PeakCheat.Utilities
         private static Dictionary<global::Player, CheatPlayer> _players = new Dictionary<global::Player, CheatPlayer>();
         public static CheatPlayer[] AllPlayers() => PlayerHandler.GetAllPlayers().Select(ToCheatPlayer).ToArray();
         public static CheatPlayer[] OtherPlayers() => AllPlayers().Where(P => !P.PhotonPlayer.IsLocal).ToArray();
-        public static global::Player ToPlayer(this Photon.Realtime.Player player) => PlayerHandler.GetPlayer(player);
         public static PhotonView[] AllViews() => AllPlayers().Select(FromPlayer).ToArray();
         public static PhotonView[] OtherViews() => OtherPlayers().Select(FromPlayer).ToArray();
         public static CheatPlayer ToCheatPlayer(this global::Player player) => GetCheatPlayer(player);
@@ -152,20 +151,15 @@ namespace PeakCheat.Utilities
             item.photonView.RPC("Consume", RpcTarget.All, -1);
             LogUtil.Log($"Force Consumed Item-Instance \"{item.name}\" for player: {player.Name}");
         }
-        public static void Teleport(this CheatPlayer player, Vector3 pos) => Teleport(player, pos, false);
-        public static void Teleport(this CheatPlayer player, Vector3 pos, bool rpc)
+        public static void Teleport(this CheatPlayer player) => Teleport(player, Character.observedCharacter.Head + Vector3.up);
+        public static void Teleport(this CheatPlayer player, Vector3 pos)
         {
-            if (rpc)
+            if (ACDisabler.UsingAntiCheat(player))
             {
-                if (ACDisabler.UsingAntiCheat(player))
-                {
-                    LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
-                    return;
-                }
-                PlayerRPC(player, "WarpPlayerRPC", new object[] { pos, true });
+                LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
             }
-            TeleportUtil.Teleport(player, pos);
+            PlayerRPC(player, "WarpPlayerRPC", new object[] { pos, true });
         }
         public static void SpazScreen(this CheatPlayer player)
         {
@@ -219,7 +213,12 @@ namespace PeakCheat.Utilities
         {
             if (!TimeUtil.CheckTime($"Crash:{player.Name}", 1f)) return;
             if (!PhotonNetwork.InstantiateItem("Dynamite", Vector3.zero, Quaternion.identity).TryGetComponent<PhotonView>(out var view)) return;
-            
+            if (player.IsLocal)
+            {
+                Application.Quit();
+                return;
+            }
+
             LogUtil.Log($"Crashing player: {player.Name}");
             view.RPC("SetKinematicRPC", player.PhotonPlayer, true, player.Position, Quaternion.identity);
             for (int i = 0; i < 1380; i++) view.RPC("RPC_Explode", player.PhotonPlayer);
