@@ -2,43 +2,35 @@
 using PeakCheat.Types;
 using PeakCheat.Utilities;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace PeakCheat.Main
 {
     public class UIHandler: MonoBehaviour, CheatBehaviour
     {
-        private static bool _toggled = false;
-        private static float _toggleTime = 0f;
+        private static bool _open = false;
         private static List<UITab> _tabs = new List<UITab>();
         private static Texture2D? _background = null, _closeTab = null;
         private static GUIStyle? _selector = null, _tabBG = null, _tabRoof = null, _tabButton = null, _tabButtonEnabled = null;
         private static Vector2 _mousePos = Vector2.zero, _maxSize = Vector2.zero;
         private static Rect _selectorRect = Rect.zero;
-        public static Texture2D Background => _background ?? (_background = GetTexture(TextureType.Background));
-        public static Texture2D CloseTab => _closeTab ?? (_closeTab = GetTexture(TextureType.CloseButton));
-        public static GUIStyle Selector => _selector ?? (_selector = GetStyle(StyleType.Selector));
-        public static GUIStyle TabBG => _tabBG ?? (_tabBG = GetStyle(StyleType.TabBG));
-        public static GUIStyle TabRoof => _tabRoof ?? (_tabRoof = GetStyle(StyleType.TabRoof));
-        public static GUIStyle TabButton => _tabButton ?? (_tabButton = GetStyle(StyleType.TabButton));
-        public static GUIStyle TabButtonEnabled => _tabButtonEnabled ?? (_tabButtonEnabled = GetStyle(StyleType.TabButtonEnabled));
+        public static Texture2D Background => _background ??= GetTexture(TextureType.Background);
+        public static Texture2D CloseTab => _closeTab ??= GetTexture(TextureType.CloseButton);
+        public static GUIStyle Selector => _selector ??= GetStyle(StyleType.Selector);
+        public static GUIStyle TabBG => _tabBG ??= GetStyle(StyleType.TabBG);
+        public static GUIStyle TabRoof => _tabRoof ??= GetStyle(StyleType.TabRoof);
+        public static GUIStyle TabButton => _tabButton ??= GetStyle(StyleType.TabButton);
+        public static GUIStyle TabButtonEnabled => _tabButtonEnabled ??= GetStyle(StyleType.TabButtonEnabled);
         public static bool Open
         {
-            get => _toggled;
+            get => _open;
             set
             {
-                _toggled = value;
-
-                if (value)
-                {
-                    _toggleTime = Time.time;
-                    _mousePos = Event.current.mousePosition;
-                }
-
-                LogUtil.Log(value? "GUI Opened": "Closed GUI");
+                _open = value;
+                if (_open) _mousePos = Event.current.mousePosition;
             }
         }
-        public static float ToggleTime => _toggleTime;
         public static bool GUIActive() => Open;
         public static void AddTab(UITab tab) => _tabs.AddIfNew(tab);
         private static Texture2D GetTexture(TextureType type)
@@ -71,7 +63,7 @@ namespace PeakCheat.Main
         void CheatBehaviour.Update()
         {
             _mousePos = Event.current.mousePosition;
-            if (Input.GetKeyDown(KeyCode.Tab))
+            if (Input.GetKeyUp(KeyCode.Tab))
             {
                 Open = !Open;
                 CursorSettings.ShowCursor(Open);
@@ -97,7 +89,7 @@ namespace PeakCheat.Main
 
             if (_tabs.Any(T => T.Data.Dragging, out var dragTab))
                 if (!Input.GetMouseButton(0)) dragTab.Data.Dragging = false;
-                else dragTab.Data.Position = Vector2.Lerp(dragTab.Data.Position, Event.current.mousePosition + dragTab.Data.DragOffset, Time.deltaTime * 5f);
+                else dragTab.Data.Position = Vector2.Lerp(dragTab.Data.Position, Event.current.mousePosition + dragTab.Data.DragOffset, Time.deltaTime * 3f);
 
             foreach (var tab in _tabs)
             {

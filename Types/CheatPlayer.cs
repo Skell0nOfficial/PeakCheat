@@ -11,9 +11,9 @@ namespace PeakCheat.Types
         {
             if (player == null) return;
             var playerCharacter = player.character;
-            if (!player.TryGetPhotonPlayer(out var photonPlayer)) return;
+            if (!player.TryGetPhotonPlayer(out var photonPlayer) || !(photonPlayer is Photon.Realtime.Player p)) return;
             View = playerCharacter.photonView;
-            PhotonPlayer = photonPlayer;
+            PhotonPlayer = p;
             GamePlayer = player;
             GameCharacter = playerCharacter;
         }
@@ -26,12 +26,14 @@ namespace PeakCheat.Types
         public CharacterData? CharacterData => GameCharacter?.data;
         public Transform? HeadTransform => GameCharacter.refs.head?.transform;
         public Transform? BodyTransform => GameCharacter.refs.hip?.transform;
+        public Color PlayerColor => GameCharacter?.refs.customization?.PlayerColor?? Color.black;
         public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? false;
         public bool Alive => !Dead;
         public bool Dead => CharacterData?.dead ?? false;
         public bool IsLocal => GameCharacter?.IsLocal ?? PhotonPlayer?.IsLocal ?? false;
         public bool PassedOut => CharacterData?.passedOut?? false;
+        public int? Actor => PhotonPlayer?.ActorNumber;
         public bool GetItem(out Item? item)
         {
             var currentItem = CharacterData?.currentItem;

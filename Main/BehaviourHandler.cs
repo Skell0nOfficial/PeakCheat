@@ -25,6 +25,17 @@ namespace PeakCheat.Main
             behaviour = default!;
             return false;
         }
+        public static bool TryGetBehaviour(Type type, out CheatBehaviour behaviour)
+        {
+            if (BehaviourDict.TryGetValue(type, out var _behaviour))
+            {
+                behaviour = _behaviour;
+                return true;
+            }
+
+            behaviour = default!;
+            return false;
+        }
         private bool CreateBehaviour(Type type, out CheatBehaviour? behaviour)
         {
             if (BehaviourDict.TryGetValue(type, out behaviour)) return true;

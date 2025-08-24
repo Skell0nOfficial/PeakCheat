@@ -32,7 +32,7 @@ namespace PeakCheat.Utilities
         {
             return level switch
             {
-                LogLevel.None => "ffffff",
+                LogLevel.None => "808080",
                 LogLevel.Warning => "c1e620",
                 LogLevel.Error => "ba0d0d",
                 _ => "000000"

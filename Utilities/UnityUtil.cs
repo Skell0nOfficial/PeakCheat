@@ -54,6 +54,7 @@ namespace PeakCheat.Utilities
             if (TimeUtil.CheckTime(.2f) && (Mathf.Abs(_previousFPS - GetFPS) >= 4)) _previousFPS = GetFPS;
             return _previousFPS;
         }
+        public static string WithColor(this string str, Color c) => $"<color=#{ColorUtility.ToHtmlStringRGBA(c)}>{str}</color>";
         public static string Bold(this string str) => $"<b>{str}</b>";
         public static string Bold(this string str, int size) => Size(Bold(str), size);
         public static string Size(this string str, int size) => $"<size={Mathf.RoundToInt(ScreenSize().magnitude / 22030 * (size * 10f))}>{str}</b>";
@@ -197,6 +198,16 @@ namespace PeakCheat.Utilities
             result.Apply();
             return result;
         }
+        public static List<Transform> GetDescendants(this Transform parent)
+        {
+            List<Transform> descendants = new List<Transform>();
+            foreach (Transform child in parent)
+            {
+                descendants.Add(child);
+                descendants.AddRange(child.GetDescendants());
+            }
+            return descendants;
+        }
         public static Vector3 CurrentPosition() => Character.localCharacter.Center;
         public static Vector2[] GenerateLinePositions(int buttonCount, float spacing, float lineWidth, Vector2 size)
         {
@@ -210,7 +221,7 @@ namespace PeakCheat.Utilities
 
             for (int i = 0; i < buttonCount; i++)
             {
-                if (currentWidth >= lineWidth)
+                if (currentWidth >= (lineWidth * (1f + spacing)))
                 {
                     currentWidth = 0f;
                     row++;
@@ -228,6 +239,27 @@ namespace PeakCheat.Utilities
         public static bool EvenTime() => TenRound(Time.time - (int)Time.time) % 2 == 0;
         public static float Bounce(float ping, float pong, float speed) =>
             Mathf.Lerp(ping, pong, Mathf.PingPong(Time.time * speed, 1f));
+        public static Vector3 Abs(this Vector3 vector) => Modify(vector, Mathf.Abs);
+        public static Vector3 Sign(this Vector3 vector) => Modify(vector, Mathf.Sign);
+        public static Vector3 Cos(this Vector3 vector) => Modify(vector, Mathf.Cos);
+        public static Vector3 Sin(this Vector3 vector) => Modify(vector, Mathf.Sin);
+        public static Vector3 Asin(this Vector3 vector) => Modify(vector, Mathf.Asin);
+        public static Vector3 Acos(this Vector3 vector) => Modify(vector, Mathf.Acos);
+        public static Vector3 Atan(this Vector3 vector) => Modify(vector, Mathf.Atan);
+        public static Vector3 Exp(this Vector3 vector) => Modify(vector, Mathf.Exp);
+        public static Vector3 Round(this Vector3 vector) => Modify(vector, Mathf.Round);
+        public static Vector3 Floor(this Vector3 vector) => Modify(vector, Mathf.Floor);
+        public static Vector3 Ceil(this Vector3 vector) => Modify(vector, Mathf.Ceil);
+        public static Vector3 Clamp01(this Vector3 vector) => Modify(vector, Mathf.Clamp01);
+        public static Vector3 Modify(this Vector3 vector, Func<float, float> modifier)
+        {
+            return new Vector3()
+            {
+                x = modifier(vector.x),
+                y = modifier(vector.y),
+                z = modifier(vector.z)
+            };
+        }
         public static Vector3 Orbit(this Transform transform) => transform.position.Orbit();
         public static Vector3 Orbit(this Vector3 position) => position + OrbitVector();
         public static Vector3 OrbitVector() => OrbitVector(50f);

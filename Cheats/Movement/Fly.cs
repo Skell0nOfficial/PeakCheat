@@ -1,8 +1,8 @@
 ﻿using PeakCheat.Types;
 using PeakCheat.Main;
-using PeakCheat.Patches;
 using UnityEngine;
 using Zorro.Core;
+using PeakCheat.Patches;
 
 namespace PeakCheat.Cheats.Movement
 {

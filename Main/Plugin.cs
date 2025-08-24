@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace PeakCheat.Main
 {
-    [BepInPlugin("org.skellon.peak.cheat", "PeakCheat", "0.1")]
+    [BepInPlugin("org.skellon.peak.cheat", "PeakCheat", "1.0")]
     public class Plugin: BaseUnityPlugin
     {
         public static Plugin? Instance { get; private set; }

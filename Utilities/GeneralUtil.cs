@@ -16,6 +16,12 @@ namespace PeakCheat.Utilities
             action();
         }
         public static T[] SingleArray<T>(this T obj) => new T[] { obj };
+        public static T[] DeleteDuplicates<T>(this IEnumerable<T> values)
+        {
+            List<T> list = new List<T>();
+            foreach (T value in values) AddIfNew(list, value);
+            return list.ToArray();
+        }
         public static List<T> SingleList<T>(this T obj) => SingleArray(obj).ToList();
         public static bool Any<T>(this T[] array, Func<T, bool> func, out T value) => Any((IEnumerable<T>)array, func, out value);
         public static bool Any<T>(this IEnumerable<T> enumerable, Func<T, bool> func, out T value)

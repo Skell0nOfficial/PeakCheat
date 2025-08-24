@@ -10,6 +10,7 @@
         public virtual void Disable() {}
         public virtual void Init() {}
         public virtual bool Hide() => false;
+        public virtual bool DefaultEnabled => false;
         public int GetID() => (Name + Description).GetHashCode();
         private bool _enabled = false;
         public bool Enabled

@@ -1,10 +1,10 @@
 ﻿using PeakCheat.Types;
 using Photon.Pun;
-using Sirenix.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zorro.Core;
 
 namespace PeakCheat.Utilities
 {
@@ -32,7 +32,7 @@ namespace PeakCheat.Utilities
         public static Vector3 Position(this CheatPlayer player) => player.Position;
         public static bool InRange(this CheatPlayer player, float range) =>
             Vector3.Distance(UnityUtil.CurrentPosition(), player.Position()) <= range;
-        public static bool TryGetPhotonPlayer(this global::Player player, out Photon.Realtime.Player photonPlayer)
+        public static bool TryGetPhotonPlayer(this global::Player player, out Photon.Realtime.Player? photonPlayer)
         {
             foreach (var p in PhotonNetwork.PlayerList)
             {
@@ -48,23 +48,18 @@ namespace PeakCheat.Utilities
         public static int GetID(this CheatPlayer player) => GeneralUtil.Compute(player.Name + (player.PhotonPlayer?.ActorNumber ?? -1) + (PhotonNetwork.CurrentRoom?.Name ?? "null"));
         #endregion
         #region Scripts
-        private class DeathPatch : CheatBehaviour
+        public static Vector3 NaN => Vector3.one * float.NaN;
+        public static Vector3 FarAway => Vector3.one * (float.MaxValue / 27f);
+        public static Vector3 GetRespawnPosition()
         {
-            private static Dictionary<int, Vector3> _positions = new Dictionary<int, Vector3>();
-            void CheatBehaviour.Update() => AllPlayers().Where(P => P.Alive).ForEach(P => _positions[P.GetID()] = P.BodyTransform?.position ?? Vector3.zero);
-            public static Vector3 GetDiedPos(CheatPlayer player)
+            if (Singleton<MapHandler>.Instance is MapHandler map)
             {
-                if (!_positions.TryGetValue(player.GetID(), out var pos))
-                {
-                    pos = AllPlayers().First(P => P.Alive).Position + (Vector3.right * .7f) - (Vector3.up * .4f);
-                    _positions.Add(player.GetID(), pos);
-                }
+                var seg = map.GetCurrentSegment();
 
-                return pos;
+                return map.segments[(int)seg]?.reconnectSpawnPos.position?? Vector3.zero;
             }
+            return Vector3.zero;
         }
-        public static Vector3 NaN => Vector3.one * (float.MaxValue / 10f);
-        public static Vector3 GetDeathPosition(this CheatPlayer player) => DeathPatch.GetDiedPos(player);
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
         public static void PlayerRPC(this CheatPlayer player, string RPC, object data) => PlayerRPC(player, RPC, RpcTarget.All, data);
@@ -129,7 +124,7 @@ namespace PeakCheat.Utilities
                 return;
             }
 
-            PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { GetDeathPosition(player), true });
+            PlayerRPC(player, "RPCA_ReviveAtPosition", new object[] { GetRespawnPosition(), true });
         }
         public static void DeleteItem(this CheatPlayer player)
         {
@@ -151,7 +146,7 @@ namespace PeakCheat.Utilities
             item.photonView.RPC("Consume", RpcTarget.All, -1);
             LogUtil.Log($"Force Consumed Item-Instance \"{item.name}\" for player: {player.Name}");
         }
-        public static void Teleport(this CheatPlayer player) => Teleport(player, Character.observedCharacter.Head + Vector3.up);
+        public static void Teleport(this CheatPlayer player) => Teleport(player, Character.observedCharacter.Head + (Vector3.up * 3f));
         public static void Teleport(this CheatPlayer player, Vector3 pos)
         {
             if (ACDisabler.UsingAntiCheat(player))
@@ -161,11 +156,20 @@ namespace PeakCheat.Utilities
             }
             PlayerRPC(player, "WarpPlayerRPC", new object[] { pos, true });
         }
+        public static void Trap(this CheatPlayer player)
+        {
+            if (!Exploits.TryGetPrefab<MagicBean>(out var obj) || obj == null) return;
+            if (!PhotonNetwork.InstantiateItem(obj.name, FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj)) return;
+
+            if (viewObj is PhotonView view)
+                foreach (var dir in UnityUtil.GetDirections())
+                    view.RPC("GrowVineRPC", player.PhotonPlayer, player.Position() + dir.normalized, -dir, 1f);
+        }
         public static void SpazScreen(this CheatPlayer player)
         {
             if (!ACDisabler.UsingAntiCheat(player))
             {
-                PlayerRPC(player, "RPCA_FallWithScreenShake", player, .1f, float.MaxValue);
+                PlayerRPC(player, "RPCA_FallWithScreenShake", player, 1f, float.MaxValue);
                 return;
             }
             LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
@@ -177,9 +181,6 @@ namespace PeakCheat.Utilities
         }
         public static void BreakGame(this CheatPlayer player)
         {
-            for (int i = 0; i < 10; i++)
-                LogUtil.Log($"Breaking game for player: {player.Name}");
-            return;
             int num = 0;
             var RPCMethod = typeof(CharacterData).GetMethod("RPC_SyncOnJoin");
             object[] parameters = new object[RPCMethod.GetParameters().Count()];
@@ -211,17 +212,27 @@ namespace PeakCheat.Utilities
         }
         public static void Crash(this CheatPlayer player)
         {
-            if (!TimeUtil.CheckTime($"Crash:{player.Name}", 1f)) return;
-            if (!PhotonNetwork.InstantiateItem("Dynamite", Vector3.zero, Quaternion.identity).TryGetComponent<PhotonView>(out var view)) return;
-            if (player.IsLocal)
-            {
-                Application.Quit();
-                return;
-            }
-
+            if (!TimeUtil.CheckTime($"Crash:{player.Name}", 15f)) return;
+            if (!Exploits.TryGetPrefab<Dynamite>(out var obj) || obj == null) return;
+            if (!PhotonNetwork.InstantiateItem(obj.name, FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var view)) return;
             LogUtil.Log($"Crashing player: {player.Name}");
-            view.RPC("SetKinematicRPC", player.PhotonPlayer, true, player.Position, Quaternion.identity);
-            for (int i = 0; i < 1380; i++) view.RPC("RPC_Explode", player.PhotonPlayer);
+
+            view.RPC("SetKinematicRPC", player.PhotonPlayer, true, player.Position(), Quaternion.identity);
+            for (int i = 0; i < 2000; i++) view.RPC("RPC_Explode", player.PhotonPlayer);
+            PhotonNetwork.SendAllOutgoingCommands();
+        }
+        public static void BombPlayer(this CheatPlayer player) => BombPlayers(player.SingleArray());
+        public static void BombPlayers(this CheatPlayer[] players)
+        {
+            if (!PhotonNetwork.InstantiateItem("Dynamite", FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj)) return;
+
+            if (viewObj is PhotonView view)
+                foreach (var player in players)
+                    if (player.PhotonPlayer is Photon.Realtime.Player p)
+                    {
+                        view.RPC("SetKinematicRPC", p, true, player.Position(), Quaternion.identity);
+                        view.RPC("RPC_Explode", p);
+                    }
         }
         #endregion
     }

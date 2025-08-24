@@ -13,14 +13,9 @@ namespace PeakCheat.Utilities
         public static Action<CheatPlayer, Hashtable>? PropertiesUpdate;
         private void Awake()
         {
-            PeakCheat.Utilities.Exploits.ForceSetProps(Photon.Pun.PhotonNetwork.MasterClient, "Nigger", new ExitGames.Client.Photon.Hashtable()
-            {
-                ["AtlUser"] = PeakCheat.Utilities.ACDisabler.ForcedPropertyKey,
-                ["CherryUser"] = PeakCheat.Utilities.ACDisabler.ForcedPropertyKey
-            });
             JoinedRoom = new Action(() => LogUtil.Log("Joined room"));
             LeftRoom = new Action(() => LogUtil.Log("Left room"));
-            PropertiesUpdate = new Action<CheatPlayer, Hashtable>((C, H) => LogUtil.Log($"{C.Name} has {(H.Count > 0? $"{H.Count} Property keys:\n{string.Join('\n', H.Select(P => $"{P.Key}: \"{P.Value}\""))}": "0 properties")}"));
+            PropertiesUpdate = new Action<CheatPlayer, Hashtable>((C, H) => { });
         }
         public override void OnJoinedRoom() => JoinedRoom?.Invoke();
         public override void OnLeftRoom() => LeftRoom?.Invoke();

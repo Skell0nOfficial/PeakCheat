@@ -1,6 +1,6 @@
 ﻿using PeakCheat.Types;
-using PeakCheat.Patches;
 using PeakCheat.Utilities;
+using PeakCheat.Patches;
 
 namespace PeakCheat.Cheats.Gameplay
 {
