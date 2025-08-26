@@ -11,7 +11,7 @@ namespace PeakCheat.Utilities
     public static class PlayerUtil
     {
         #region Utilities
-        private static Dictionary<global::Player, CheatPlayer> _players = new Dictionary<global::Player, CheatPlayer>();
+        private static readonly Dictionary<global::Player, CheatPlayer> _players = new Dictionary<global::Player, CheatPlayer>();
         public static CheatPlayer[] AllPlayers() => PlayerHandler.GetAllPlayers().Select(ToCheatPlayer).ToArray();
         public static CheatPlayer[] OtherPlayers() => AllPlayers().Where(P => !P.PhotonPlayer.IsLocal).ToArray();
         public static PhotonView[] AllViews() => AllPlayers().Select(FromPlayer).ToArray();
@@ -56,7 +56,7 @@ namespace PeakCheat.Utilities
             {
                 var seg = map.GetCurrentSegment();
 
-                return map.segments[(int)seg]?.reconnectSpawnPos.position?? Vector3.zero;
+                return map.segments[(int)seg]?.reconnectSpawnPos.position ?? Vector3.zero;
             }
             return Vector3.zero;
         }
@@ -70,7 +70,7 @@ namespace PeakCheat.Utilities
         public static void Kill(this CheatPlayer player)
         {
             if (player.Dead) return;
-            if (!ACDisabler.UsingAntiCheat(player))
+            if (!player.AnticheatUser)
             {
                 PlayerRPC(player, "RPCA_Die", player.Position);
                 return;
@@ -79,7 +79,7 @@ namespace PeakCheat.Utilities
         }
         public static void SlowKill(this CheatPlayer player)
         {
-            if (!ACDisabler.UsingAntiCheat(player))
+            if (!player.AnticheatUser)
             {
                 SetAllStatuses(player, 1.6F / Enum.GetValues(typeof(CharacterAfflictions.STATUSTYPE)).Length);
                 return;
@@ -93,26 +93,31 @@ namespace PeakCheat.Utilities
                 LogUtil.Log(false, "Rejecting fling (time delay returned false)");
                 return;
             }
-            for (int i = 0; i < 50; i++) SetVelocity(player, UnityUtil.RandomDirection().normalized * ((i + 1) * .5f));
+
+            var dir = UnityUtil.RandomDirection();
+            for (int i = 0; i < 50; i++) SetVelocity(player, dir * (i + 1));
         }
+        public static void Jump(this CheatPlayer player) => Jump(player, true, true);
         public static void Jump(this CheatPlayer player, bool ForceJump, bool PalJump)
         {
-            if (ACDisabler.UsingAntiCheat(player))
+            if (player.AnticheatUser)
             {
                 LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
             }
             if (ForceJump)
-                PlayerRPC(player, "JumpRpc", PalJump);
-            else if (player.OnGround) PlayerRPC(player, "JumpRpc", PalJump);
+                PlayerRPC(player, "JumpRpc", player, PalJump);
+            else if (player.OnGround) PlayerRPC(player, "JumpRpc", player, PalJump);
         }
+        public static void FakeKill(this CheatPlayer player) => SetDeadEyes(player, true);
+        public static void FakeRevive(this CheatPlayer player) => SetDeadEyes(player, false);
         public static void SetDeadEyes(this CheatPlayer player, bool Dead) => PlayerRPC(player, Dead ? "CharacterDied" : "OnRevive_RPC");
-        public static void Faint(this CheatPlayer player) => PlayerRPC(player, "RPCA_PassOut");
+        public static void Faint(this CheatPlayer player) => PlayerRPC(player, "RPCA_PassOut", player);
         public static void Fall(this CheatPlayer player) => PlayerRPC(player, "RPCA_Fall", 1f);
-        public static void Fall(this CheatPlayer player, float seconds) => PlayerRPC(player, "RPCA_Fall", seconds);
+        public static void Fall(this CheatPlayer player, float seconds) => PlayerRPC(player, "RPCA_Fall", player, seconds);
         public static void Revive(this CheatPlayer player)
         {
-            if (ACDisabler.UsingAntiCheat(player))
+            if (player.AnticheatUser)
             {
                 LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
@@ -128,7 +133,7 @@ namespace PeakCheat.Utilities
         }
         public static void DeleteItem(this CheatPlayer player)
         {
-            if (ACDisabler.UsingAntiCheat(player))
+            if (player.AnticheatUser)
             {
                 LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
@@ -149,12 +154,12 @@ namespace PeakCheat.Utilities
         public static void Teleport(this CheatPlayer player) => Teleport(player, Character.observedCharacter.Head + (Vector3.up * 3f));
         public static void Teleport(this CheatPlayer player, Vector3 pos)
         {
-            if (ACDisabler.UsingAntiCheat(player))
+            if (player.AnticheatUser)
             {
                 LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
             }
-            PlayerRPC(player, "WarpPlayerRPC", new object[] { pos, true });
+            PlayerRPC(player, "WarpPlayerRPC", player, new object[] { pos, true });
         }
         public static void Trap(this CheatPlayer player)
         {
@@ -163,11 +168,11 @@ namespace PeakCheat.Utilities
 
             if (viewObj is PhotonView view)
                 foreach (var dir in UnityUtil.GetDirections())
-                    view.RPC("GrowVineRPC", player.PhotonPlayer, player.Position() + dir.normalized, -dir, 1f);
+                    view.RPC("GrowVineRPC", player.PhotonPlayer, player.Position + (dir.normalized * 2f), dir, .7f);
         }
         public static void SpazScreen(this CheatPlayer player)
         {
-            if (!ACDisabler.UsingAntiCheat(player))
+            if (!player.AnticheatUser)
             {
                 PlayerRPC(player, "RPCA_FallWithScreenShake", player, 1f, float.MaxValue);
                 return;
@@ -183,16 +188,24 @@ namespace PeakCheat.Utilities
         {
             int num = 0;
             var RPCMethod = typeof(CharacterData).GetMethod("RPC_SyncOnJoin");
-            object[] parameters = new object[RPCMethod.GetParameters().Count()];
+            var parameters = new object[RPCMethod.GetParameters().Length];
 
-            foreach (var paramType in RPCMethod.GetParameters().Select(p => p.ParameterType))
-                if (paramType == typeof(bool)) parameters[num++] = false;
+            foreach (var param in RPCMethod.GetParameters())
+            {
+                var paramType = param.ParameterType;
+                if (paramType == typeof(bool)) parameters[num++] = !param.Name.Contains("dead");
                 else if (paramType == typeof(bool[])) parameters[num++] = Array.Empty<bool>();
-                else if (paramType == typeof(float)) parameters[num++] = 10f;
-                else if (paramType == typeof(PhotonView)) parameters[num++] = player.View;
+                else if (paramType == typeof(PhotonView)) parameters[num++] = null;
+                else parameters[num++] = Activator.CreateInstance(paramType);
+            }
 
-            PlayerRPC(player, "RPC_SyncOnJoin", player, parameters);
-            if (!ACDisabler.UsingAntiCheat(player)) Teleport(player, NaN);
+            if (parameters.Length == RPCMethod.GetParameters().Length) PlayerRPC(player, "RPC_SyncOnJoin", player, parameters);
+            if (!Exploits.TryGetPrefab<MagicBean>(out var obj) || obj == null) return;
+            if (!PhotonNetwork.InstantiateItem(obj.name, FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj)) return;
+            
+            if (viewObj is PhotonView view)
+                foreach (var dir in UnityUtil.GetDirections())
+                    view.RPC("GrowVineRPC", player.PhotonPlayer, player.Position, dir, .7f);
         }
         public static void ResetStatuses(this CheatPlayer player) => SetAllStatuses(player, 0f);
         public static void SetStatus(this CheatPlayer player, CharacterAfflictions.STATUSTYPE status, float value)
@@ -224,15 +237,26 @@ namespace PeakCheat.Utilities
         public static void BombPlayer(this CheatPlayer player) => BombPlayers(player.SingleArray());
         public static void BombPlayers(this CheatPlayer[] players)
         {
-            if (!PhotonNetwork.InstantiateItem("Dynamite", FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj)) return;
+            if (!Exploits.TryGetPrefab<Dynamite>(out var obj) || obj == null)
+            {
+                LogUtil.Log(false, "Cant find Dynamite object?");
+                return;
+            }
+            if (!PhotonNetwork.InstantiateItem(obj.name, Vector3.zero, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj))
+            {
+                LogUtil.Log(false, "Cant get Dynamite view component?");
+                return;
+            }
 
             if (viewObj is PhotonView view)
                 foreach (var player in players)
                     if (player.PhotonPlayer is Photon.Realtime.Player p)
                     {
                         view.RPC("SetKinematicRPC", p, true, player.Position(), Quaternion.identity);
-                        view.RPC("RPC_Explode", p);
+                        GeneralUtil.DelayInvoke(() => view.RPC("RPC_Explode", p), .07f);
                     }
+                    else LogUtil.Log(false, "PhotonPlayer is null?");
+            else LogUtil.Log(false, "viewObj is null?");
         }
         #endregion
     }

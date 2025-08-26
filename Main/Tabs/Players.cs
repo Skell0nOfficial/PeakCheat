@@ -1,7 +1,6 @@
 ﻿using PeakCheat.Types;
 using PeakCheat.Utilities;
 using Photon.Pun;
-using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,18 +67,14 @@ Server Type: {PhotonNetwork.Server}
                 return;
             }
 
-            foreach (var type in new Type[] { typeof(Exploits), typeof(PrefabUtil), typeof(PlayerUtil), typeof(ForceFeedUtil) })
+            foreach (var type in new Type[] { typeof(PlayerUtil), typeof(ForceFeedUtil) })
                 foreach (var method in type.GetMethods())
                 {
                     if (method == null) continue;
                     if (method.DeclaringType != type) continue;
-                    if (method.GetParameters().Length > 1) continue;
-
-                    if (method.GetParameters().Length == 0)
-                    {
-                        methods.Add(method);
-                        continue;
-                    }
+                    if (method.Name.Contains("get_")) continue;
+                    if (!method.IsStatic) continue;
+                    if (method.GetParameters().Length != 1) continue;
 
                     if (method.GetParameters()[0].ParameterType == typeof(CheatPlayer))
                     {
@@ -90,11 +85,11 @@ Server Type: {PhotonNetwork.Server}
                     if (method.GetParameters()[0].ParameterType == typeof(Vector3)) methods.Add(method);
                 }
 
-            scroller = GUILayout.BeginScrollView(scroller, GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
+            scroller = GUILayout.BeginScrollView(scroller, UnityUtil.CreateStyle(GUI.skin.scrollView, Color.clear), GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
             GUILayout.BeginVertical();
 
             foreach (var method in methods)
-                if (GUILayout.Button($"{method.Name}({(method.GetParameters().Length == 0? "": $"{nameof(CheatPlayer)} {player.characterName}")});", UnityUtil.CreateStyle(GUI.skin.button, Color.black), GUILayout.Width(width), GUILayout.Height(Data.Height / 18f)))
+                if (GUILayout.Button($"{method.Name}({$"{nameof(CheatPlayer)} {player.characterName.ToLower()}"});", UnityUtil.CreateStyle(GUI.skin.button, Color.black), GUILayout.Width(width), GUILayout.Height(Data.Height / 18f)))
                 {
                     object[] objects = new object[0];
                     if (method.GetParameters().Length == 1)

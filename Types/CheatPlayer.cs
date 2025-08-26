@@ -1,5 +1,6 @@
 ﻿using PeakCheat.Utilities;
 using Photon.Pun;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PeakCheat.Types
@@ -16,13 +17,23 @@ namespace PeakCheat.Types
             PhotonPlayer = p;
             GamePlayer = player;
             GameCharacter = playerCharacter;
+            _flags = new List<PlayerFlag>();
         }
-        public string Name => GameCharacter?.characterName ?? "null";
+        public enum PlayerFlag
+        {
+            Atlas,
+            Cherry,
+            Anticheat,
+        }
+        public string Name => PhotonPlayer?.NickName ?? "null";
         public string UserId => PhotonPlayer?.UserId ?? "null";
         public PhotonView View;
         public global::Player GamePlayer;
         public Character GameCharacter;
         public Photon.Realtime.Player PhotonPlayer;
+        private List<PlayerFlag> _flags;
+        public void AddFlag(PlayerFlag flag) => _flags.AddIfNew(flag);
+        public bool HasFlag(PlayerFlag flag) => _flags.Contains(flag);
         public CharacterData? CharacterData => GameCharacter?.data;
         public Transform? HeadTransform => GameCharacter.refs.head?.transform;
         public Transform? BodyTransform => GameCharacter.refs.hip?.transform;
@@ -30,6 +41,7 @@ namespace PeakCheat.Types
         public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? false;
         public bool Alive => !Dead;
+        public bool AnticheatUser => HasFlag(PlayerFlag.Anticheat);
         public bool Dead => CharacterData?.dead ?? false;
         public bool IsLocal => GameCharacter?.IsLocal ?? PhotonPlayer?.IsLocal ?? false;
         public bool PassedOut => CharacterData?.passedOut?? false;
@@ -48,6 +60,7 @@ namespace PeakCheat.Types
             return false;
         }
         public static CheatPlayer LocalPlayer => Character.localCharacter.ToCheatPlayer();
+        public PlayerFlag[] Flags => _flags.ToArray();
         public override string ToString() => $"[{Name}] ({GetType().Name})";
         public static implicit operator CheatPlayer(Photon.Realtime.Player player) => player.ToCheatPlayer();
         public static implicit operator CheatPlayer(global::Player player) => player.ToCheatPlayer();

@@ -128,7 +128,7 @@ namespace PeakCheat.Main
         {
             var h = Screen.height;
             var w = Screen.width;
-
+            
             _maxSize = new Vector2(w - (w / 3.7f), h / 24f);
             _selectorRect.center = new Vector2(w / 2f, h - (_maxSize.y / 2f));
 

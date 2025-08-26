@@ -10,7 +10,7 @@ namespace PeakCheat.Cheats.Abusive
         public override string Name => "Crasher";
         public override string Description => "Crashes whoever you click";
         private static int _index = 0;
-        static int GetIndex(Character c) => GeneralUtil.Compute(c.characterName);
+        static int GetIndex(Character c) => GeneralUtil.Compute(c.photonView.Owner.NickName);
         public override void Method()
         {
             if (Camera.main.ScreenPointToRay(Input.mousePosition).Raycast(out var hit))

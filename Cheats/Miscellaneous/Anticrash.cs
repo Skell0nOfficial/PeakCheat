@@ -21,5 +21,8 @@ namespace PeakCheat.Cheats.Miscellaneous
         [HarmonyPatch(typeof(Constructable), "CreatePrefabRPC")]
         [HarmonyPrefix]
         static bool ConstructableCrash() => TimeUtil.CheckTime(.5f) || !Patch;
+        [HarmonyPatch(typeof(Campfire), "SetFireWoodCount")]
+        [HarmonyPrefix]
+        static bool DebugLag() => TimeUtil.CheckTime(.05f) || !Patch;
     }
 }

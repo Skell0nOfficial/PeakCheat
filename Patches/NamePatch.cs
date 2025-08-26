@@ -1,16 +1,18 @@
 ﻿using HarmonyLib;
-using Photon.Pun;
+using PeakCheat.Types;
+using PeakCheat.Utilities;
+using System.Linq;
 
 namespace PeakCheat.Patches
 {
-    [HarmonyPatch(typeof(PhotonNetwork), "NickName", MethodType.Setter)]
-    internal class NamePatch
+    [HarmonyPatch(typeof(Character), "characterName", MethodType.Getter)]
+    public class NamePatch
     {
-        private static string? _name = null;
-        private static void Prefix(ref string value)
+        static void Postfix(Character __instance, ref string __result)
         {
-            if (!string.IsNullOrEmpty(_name))
-                value = _name;
+            if (__instance.ToCheatPlayer() is CheatPlayer player)
+                if (player.Flags.Length > 0)
+                    __result += $" ({string.Join(", ", player.Flags.Select(F => F.ToString()).ToArray())})";
         }
     }
 }

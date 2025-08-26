@@ -16,13 +16,9 @@ namespace PeakCheat.Utilities
             Joining,
             Maybe_Joining
         };
-        void CheatBehaviour.Start()
-        {
-
-        }
         void UEJoinFriends()
         {
-            void Log(object m) {}
+            void Log(object m) => LogUtil.Log(m.ToString());
 
             bool Joining = false;
             string Friend = string.Empty;
@@ -53,7 +49,7 @@ namespace PeakCheat.Utilities
                 }
             */
 
-            void Log(object m) { }
+            void Log(object m) => LogUtil.Log(m.ToString());
 
             string step = "Getting lobby list";
             try
@@ -80,10 +76,11 @@ namespace PeakCheat.Utilities
         }
         void UEUsings()
         {
+
         }
         void UEJoinSpecific()
         {
-            void Log(object m) {}
+            void Log(object m) => LogUtil.Log(m.ToString());
 
             ulong lobbyID = 0;
             var ID = new Steamworks.CSteamID(lobbyID);
@@ -101,7 +98,7 @@ namespace PeakCheat.Utilities
         }
         void UETemp()
         {
-            void Log(object m) {}
+            void Log(object m) => LogUtil.Log(m.ToString());
 
             var thing = Newtonsoft.Json.JsonConvert.DeserializeObject<ulong[]>(System.IO.File.ReadAllText("C:\\Users\\level\\source\\repos\\PEAK Lobby Finder\\bin\\Debug\\net9.0\\Lobbies.json")) ?? Array.Empty<ulong>();
             foreach (var lobbyID in thing)

@@ -62,6 +62,8 @@ namespace PeakCheat.Utilities
         {
             var result = new List<Vector3>();
             foreach (var dir1 in _directions)
+            {
+                result.AddIfNew(dir1);
                 foreach (var dir2 in _directions)
                 {
                     if (dir1 == dir2) continue;
@@ -69,6 +71,7 @@ namespace PeakCheat.Utilities
                     if (newDir == Vector3.zero) continue;
                     result.AddIfNew(newDir);
                 }
+            }
             return result.ToArray();
         }
         public static Vector3[] TimeShuffle(Vector3[] values, int seconds)
@@ -99,7 +102,7 @@ namespace PeakCheat.Utilities
             }
             return dir;
         }
-        public static Vector3 RandomDirection() => GetDirections().PickRandom();
+        public static Vector3 RandomDirection() => GetDirections().PickRandom().normalized;
         public static Vector3 WithX(this Vector3 vector, float x) => new Vector3(x, vector.y, vector.z);
         public static Vector3 WithY(this Vector3 vector, float y) => new Vector3(vector.x, y, vector.z);
         public static Vector3 WithZ(this Vector3 vector, float z) => new Vector3(vector.x, vector.y, z);

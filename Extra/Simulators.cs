@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Zorro.UI.Modal;
 
 namespace PeakCheat.Extra
 {
@@ -53,7 +54,7 @@ namespace PeakCheat.Extra
             {
                 if (c.IsLocal) continue;
                 if (c.data.dead) PeakCheat.Utilities.PlayerUtil.Revive(c);
-
+                
                 PeakCheat.Utilities.LogUtil.Log($"Teleporting {c.characterName.Replace(" ", "")}..");
                 PeakCheat.Utilities.PlayerUtil.Teleport(c, Character.localCharacter.Head + (Vector3.up * num++));
                 PeakCheat.Utilities.PlayerUtil.ResetStatuses(c);
