@@ -1,4 +1,5 @@
 ﻿using PeakCheat.Types;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace PeakCheat.Utilities

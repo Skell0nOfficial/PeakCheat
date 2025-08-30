@@ -1,14 +1,12 @@
 ﻿using PeakCheat.Types;
-using PeakCheat.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Zorro.UI.Modal;
 
 namespace PeakCheat.Extra
 {
-    internal class Simulators: UITab, CheatBehaviour
+    internal class Simulators: /*UITab,*/ CheatBehaviour
     {
         void codingSpace()
         {
@@ -36,15 +34,16 @@ namespace PeakCheat.Extra
         {
             if (Photon.Pun.PhotonNetwork.InstantiateItem("Dynamite", Vector3.one * (float.MaxValue / 23.45982349873548325798235F), Quaternion.identity).TryGetComponent<Photon.Pun.PhotonView>(out var v))
                 for (int i = 0; i < 947; i++)
-                    v.RPC("RPC_Explode", Photon.Pun.RpcTarget.MasterClient);
+                    v.RPC("RPC_Explode", Photon.Pun.RpcTarget.Others);
         }
         void saved()
         {
-            var p = PlayerHandler.GetAllPlayerCharacters().Find(C => C.characterName.Contains("Gae"));
+            var p = PlayerHandler.GetAllPlayerCharacters().Find(C => C.characterName.Contains("Ban"));
             var c = MainCameraMovement.specCharacter;
             var l = Character.localCharacter;
 
-            PeakCheat.Utilities.PlayerUtil.Faint(p);
+            PeakCheat.Utilities.PlayerUtil.ResetStatuses(p);
+            PeakCheat.Utilities.PlayerUtil.PlayerRPC(p, "MoraleBoost", 100f, 0);
         }
         void TP()
         {
@@ -61,7 +60,7 @@ namespace PeakCheat.Extra
                 PeakCheat.Utilities.PlayerUtil.PlayerRPC(c, "MoraleBoost", 100f, 0);
             }
         }
-        public override string Name => "Simulators";
+        //public override string Name => "Simulators";
         public static Vector3[] GetPenisPositions()
         {
             var penisOffsets = new List<UnityEngine.Vector3>();
@@ -76,7 +75,7 @@ namespace PeakCheat.Extra
         {
             foreach (var pos in PeakCheat.Extra.Simulators.GetPenisPositions())
                 Photon.Pun.PhotonNetwork
-                    .InstantiateItem("BingBong",
+                    .InstantiateItem("Cursed Skull",
                     UnityEngine.Vector3.zero,
                     UnityEngine.Quaternion.identity)
                     .GetComponent<Photon.Pun.PhotonView>()
@@ -93,10 +92,9 @@ namespace PeakCheat.Extra
         }
         public static void CannonPP()
         {
-            var obj = Photon.Pun.PhotonNetwork.InstantiateItem("ScoutCannonItem", Vector3.zero, Quaternion.identity);
-            if (obj.TryGetComponent<Photon.Pun.PhotonView>(out var view))
-                foreach (var pos in GetPenisPositions())
-                    view.RPC("CreatePrefabRPC", Photon.Pun.RpcTarget.All, pos, UnityEngine.Quaternion.identity);
+            foreach (var pos in PeakCheat.Extra.Simulators.GetPenisPositions())
+                if (Photon.Pun.PhotonNetwork.InstantiateItem("ScoutCannonItem", Vector3.zero, Quaternion.identity).TryGetComponent<Photon.Pun.PhotonView>(out var view))
+                    PeakCheat.Utilities.GeneralUtil.DelayInvoke(() => view.RPC("CreatePrefabRPC", Photon.Pun.RpcTarget.All, pos, UnityEngine.Quaternion.identity), .7f);
         }
         public static void BingBongWave()
         {

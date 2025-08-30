@@ -16,6 +16,7 @@ namespace PeakCheat.Main
     public class CheatHandler : UITab, CheatBehaviour
     {
         public override string Name => "Cheats";
+        public override int Order => 1;
         private static int _currentCategory = 0;
         public static string CurrentCategory
         {
@@ -63,6 +64,8 @@ namespace PeakCheat.Main
         bool CheatBehaviour.DelayStart() => true;
         void CheatBehaviour.Start()
         {
+            _cheats.Clear();
+
             var categories = "PeakCheat.Cheats";
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(T => T.Namespace.StartsWith(categories) && T.IsSubclassOf(typeof(Cheat))).ToArray();
             var dict = new Dictionary<string, List<Type>>();
@@ -97,7 +100,7 @@ namespace PeakCheat.Main
                     _cheats[category] = cheats;
                 }
 
-                foreach (var type in cheatList.DeleteDuplicates())
+                foreach (var type in cheatList.DeleteDuplicates(C => $"{C.Namespace}.{C.Name}"))
                 {
                     var cheat = (Cheat)Activator.CreateInstance(type);
                     if (cheat.DefaultEnabled) Toggle(cheat);
@@ -138,15 +141,15 @@ namespace PeakCheat.Main
         {
             var categorySize = new Vector2(Data.Width * .95f, Data.Height / 8f);
             var categoryRect = new Rect(Vector2.zero, categorySize);
-
-            if (GUI.Button(categoryRect, CurrentCategory.Bold(64), UnityUtil.CreateStyle(GUI.skin.button, Color.clear))) _currentCategory++;
+            GUI.Button(categoryRect, CurrentCategory.Bold(64), UnityUtil.CreateStyle(GUI.skin.button, Color.clear));
+            if (categoryRect.Contains(Event.current.mousePosition) && !Data.Dragging && Input.GetMouseButton(0) && TimeUtil.CheckTime(.2f)) _currentCategory++;
 
             var spacing = .025f;
             var cheats = _cheats[CurrentCategory];
             var maxWidth = Data.Width * .95f;
             var size = new Vector2(maxWidth / 3f, 50f);
-            var positions = UnityUtil.GenerateLinePositions(cheats.Count, spacing, Data.Width, size);
-            
+            var positions = UnityUtil.GenerateLinePositions(cheats.Count, spacing, Data.Width * .9f, size);
+
             int num = 0;
             foreach (var pos in positions)
             {

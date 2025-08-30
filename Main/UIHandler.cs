@@ -24,7 +24,7 @@ namespace PeakCheat.Main
         public static GUIStyle TabButtonEnabled => _tabButtonEnabled ??= GetStyle(StyleType.TabButtonEnabled);
         public static bool Open
         {
-            get => _open;
+            get => _open && !Zorro.UI.Modal.Modal.IsOpen;
             set
             {
                 _open = value;
@@ -143,7 +143,7 @@ namespace PeakCheat.Main
             {
                 if (i > maxTabs) continue;
 
-                var tab = _tabs[i];
+                var tab = _tabs.OrderBy(T => T.Order).ToArray()[i];
                 var data = tab.Data;
                 var rect = Rect.zero;
 
@@ -154,6 +154,7 @@ namespace PeakCheat.Main
                 if (rect.Contains(Event.current.mousePosition) && Input.GetMouseButtonDown(0) && TimeUtil.CheckTime(.2f))
                 {
                     tab.Data.Open = !tab.Data.Open;
+                    tab.Toggle(tab.Data.Open);
                     Debug.Log($"Toggled: {tab.Name}");
                 }
             }

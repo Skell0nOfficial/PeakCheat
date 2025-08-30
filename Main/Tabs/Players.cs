@@ -9,12 +9,14 @@ using UnityEngine;
 
 namespace PeakCheat.Main.Tabs
 {
-    internal class Players: UITab, CheatBehaviour
+    internal class Players : UITab, CheatBehaviour
     {
         public override string Name => "Players";
-        private static int _currentPlayer = -1;
-        private static string text = "???";
+        public override int Order => 2;
+        private static string text = UnityEngine.Random.Range(10000, 99999).ToString();
         private static Vector2 scroller = Vector2.zero;
+        private static Item[] ItemList = Array.Empty<Item>();
+        public override void Toggle(bool toggled) => ItemList = Resources.FindObjectsOfTypeAll<Item>().Where(C => !C.name.Contains("(Clone)")).DeleteDuplicates(I => I.itemID).ToArray();
         public override void Render()
         {
             void RenderText(string title, string header, string description)
@@ -32,7 +34,10 @@ namespace PeakCheat.Main.Tabs
                 GUI.Label(textRect, description);
             }
             void Error(string type, string text) => RenderText("Cant Render", $"{type} Exception", text);
-
+            void PlayerError(string error)
+            {
+                Error("Player", error);
+            }
             if (CheatUtil.CurrentScene < SceneType.Airport)
             {
                 Error("Scene", $"Cant Execute in scene: {CheatUtil.CurrentScene}");
@@ -48,16 +53,7 @@ Server Type: {PhotonNetwork.Server}
                 return;
             }
 
-            void PlayerError(string error)
-            {
-                Error("Player", error);
-                _currentPlayer = PhotonNetwork.LocalPlayer.ActorNumber;
-            }
-
             var width = Data.Width * .9f;
-            text = GUILayout.TextField(text, GUILayout.Width(width), GUILayout.Height(Data.Height / 17f));
-
-            var methods = new List<MethodInfo>();
             var player = Character.observedCharacter;
 
             if (PlayerUtil.AllPlayers().Any(C => C.Name.ToLower().Trim().Contains(text.ToLower().Trim()), out var c)) player = c;
@@ -67,29 +63,19 @@ Server Type: {PhotonNetwork.Server}
                 return;
             }
 
-            foreach (var type in new Type[] { typeof(PlayerUtil), typeof(ForceFeedUtil) })
-                foreach (var method in type.GetMethods())
-                {
-                    if (method == null) continue;
-                    if (method.DeclaringType != type) continue;
-                    if (method.Name.Contains("get_")) continue;
-                    if (!method.IsStatic) continue;
-                    if (method.GetParameters().Length != 1) continue;
-
-                    if (method.GetParameters()[0].ParameterType == typeof(CheatPlayer))
-                    {
-                        methods.Add(method);
-                        continue;
-                    }
-
-                    if (method.GetParameters()[0].ParameterType == typeof(Vector3)) methods.Add(method);
-                }
-
-            scroller = GUILayout.BeginScrollView(scroller, UnityUtil.CreateStyle(GUI.skin.scrollView, Color.clear), GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
             GUILayout.BeginVertical();
+            scroller = GUILayout.BeginScrollView(scroller, UnityUtil.CreateStyle(GUI.skin.scrollView, Color.clear), GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
+            text = GUILayout.TextField(text, GUILayout.Width(width), GUILayout.Height(Data.Height / 17f));
+            GUILayout.Label($"Current Player: {player.characterName}", GUILayout.Width(width), GUILayout.Height(Data.Height / 20f));
+            bool RenderButton(string text) => RenderButtonContent(new GUIContent(text));
+            bool RenderButtonContent(GUIContent data) => GUILayout.Button(data, UnityUtil.CreateStyle(GUI.skin.button, Color.black), GUILayout.Width(width), GUILayout.Height(Data.Height / 14f));
 
-            foreach (var method in methods)
-                if (GUILayout.Button($"{method.Name}({$"{nameof(CheatPlayer)} {player.characterName.ToLower()}"});", UnityUtil.CreateStyle(GUI.skin.button, Color.black), GUILayout.Width(width), GUILayout.Height(Data.Height / 18f)))
+            foreach (var pair in PlayerScript.GetMethods())
+            {
+                var name = pair.Key;
+                var method = pair.Value;
+
+                if (RenderButton(name))
                 {
                     object[] objects = new object[0];
                     if (method.GetParameters().Length == 1)
@@ -100,43 +86,52 @@ Server Type: {PhotonNetwork.Server}
                         else if (param.ParameterType == typeof(CheatPlayer)) objects = ((object)player.ToCheatPlayer()).SingleArray();
                     }
 
-                    var result = method.Invoke(null, objects);
-                    if (method.ReturnType == typeof(void))
+                    try
                     {
-                        LogUtil.Log($"Invoked {method.Name}(), no return value");
-                        continue;
-                    }
+                        var result = method.Invoke(null, objects);
 
-                    if (result is bool value)
+                        if (method.ReturnType == typeof(void))
+                        {
+                            LogUtil.Log($"Invoked {name}, no return value");
+                            continue;
+                        }
+
+                        if (result is bool value)
+                        {
+                            LogUtil.Log($"Invoked {name}, result: {value.ToString().ToLower()}");
+                            continue;
+                        }
+
+                        LogUtil.Log($"Invoked {name}, result: {result}");
+                    }
+                    catch (Exception error)
                     {
-                        LogUtil.Log($"Invoked {method.Name}(), result: {value.ToString().ToLower()}");
-                        continue;
-                    }
+                        LogUtil.Log(true, $@"
+CANT INVOKE {name.ToUpper()}
 
-                    LogUtil.Log($"Invoked {method.Name}(), result: {result}");
+
+Message: {error.Message}
+Source: {error.Source}");
+                    }
                 }
+            }
+            foreach (var item in ItemList)
+            {
+                var name = item.UIData.itemName;
+                var objName = item.name.Replace("(Clone)", "");
+                var C = player.ToCheatPlayer();
+                bool Button(string type) => RenderButtonContent(new GUIContent($"{type} {name}", item.UIData.icon));
+
+                if (Button("Give")) C.GiveItem(objName);
+                if (Button("Drop")) PhotonNetwork.InstantiateItem(objName, C.Center + (C.BodyTransform?.forward * 1.5f ?? Vector3.forward), Quaternion.identity);
+                
+                string action = item.UIData.mainInteractPrompt.Trim().ToLower();
+                if ((action == "eat" || action == "drink") && Button("Feed")) C.FeedItem(objName);
+                if ((action == "use" || action == "commune") && Button("Use")) C.FeedItem(objName);
+            }
 
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
-
-           /*if (_currentPlayer <= 0) _currentPlayer = PhotonNetwork.LocalPlayer.ActorNumber;
-            if (!PhotonNetwork.TryGetPlayer(_currentPlayer, out var player))
-            {
-                PlayerError("TryGetPlayer is false");
-                return;
-            }
-
-            var current = player.ToCheatPlayer();
-            if (current == null)
-            {
-                PlayerError("current is null");
-                return;
-            }
-            
-            GUILayout.BeginVertical();
-            GUILayout.Space(10f);
-            
-            GUILayout.EndVertical();*/
         }
     }
 }

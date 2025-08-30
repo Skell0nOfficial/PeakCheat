@@ -17,6 +17,8 @@ namespace PeakCheat.Types
         }
         public TabData Data;
         public virtual string Name => "Untitled Tab";
+        public virtual int Order => -1;
         public virtual void Render() {}
+        public virtual void Toggle(bool toggled) {}
     }
 }

@@ -1,5 +1,4 @@
 ﻿using BepInEx.Logging;
-using HarmonyLib;
 using PeakCheat.Types;
 using UnityEngine;
 
@@ -10,10 +9,10 @@ namespace PeakCheat.Utilities
         public enum LogLevel { None, Warning, Error }
         private static ManualLogSource? _logger = null;
         void CheatBehaviour.Start() => _logger = BepInEx.Logging.Logger.CreateLogSource("PeakCheat");
-        public static void Log(string message) => Log(0, message);
-        public static void Log(bool error, string message) => Log(error? 2: 1, message);
-        public static void Log(int level, string message) => Log((LogLevel)level, message);
-        public static void Log(LogLevel level, string message)
+        public static void Log(object message) => Log(0, message);
+        public static void Log(bool error, object message) => Log(error? 2: 1, message);
+        public static void Log(int level, object message) => Log((LogLevel)level, message);
+        public static void Log(LogLevel level, object message)
         {
             if (!(_logger is ManualLogSource Logger))
             {
@@ -22,11 +21,9 @@ namespace PeakCheat.Utilities
             }
 
             if (Object.FindFirstObjectByType<PlayerConnectionLog>() is PlayerConnectionLog LoggerObject)
-                Traverse.Create(LoggerObject)
-                    .Method("AddMessage", "PeakCheat")
-                    .GetValue($"<color=#{ConvertHex(level)}>[PeakCheat] {message}</color>");
+                LoggerObject.AddMessage($"<color=#{ConvertHex(level)}>[PeakCheat] {message}</color>");
 
-            Logger.Log(Convert(level), message);
+            Logger.Log(Convert(level), message.ToString());
         }
         public static string ConvertHex(LogLevel level)
         {

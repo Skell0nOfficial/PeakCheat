@@ -1,5 +1,6 @@
 ﻿using PeakCheat.Utilities;
 using Photon.Pun;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,18 +28,28 @@ namespace PeakCheat.Types
         }
         public string Name => PhotonPlayer?.NickName ?? "null";
         public string UserId => PhotonPlayer?.UserId ?? "null";
+        public static CheatPlayer[] All => PlayerUtil.AllPlayers();
+        public static CheatPlayer[] Others => PlayerUtil.AllPlayers();
+        private static List<Action<CheatPlayer, PlayerFlag>> _callbacks = new List<Action<CheatPlayer, PlayerFlag>>();
+        public static void FlagCallback(Action<CheatPlayer, PlayerFlag> action) => _callbacks.Add(action);
         public PhotonView View;
         public global::Player GamePlayer;
         public Character GameCharacter;
         public Photon.Realtime.Player PhotonPlayer;
         private List<PlayerFlag> _flags;
-        public void AddFlag(PlayerFlag flag) => _flags.AddIfNew(flag);
+        public void AddFlag(PlayerFlag flag)
+        {
+            _flags.AddIfNew(flag);
+            _callbacks.Execute(A => A(this, flag));
+        }
         public bool HasFlag(PlayerFlag flag) => _flags.Contains(flag);
+        public void ClearFlag(PlayerFlag flag) => _flags.RemoveIfContains(flag);
         public CharacterData? CharacterData => GameCharacter?.data;
         public Transform? HeadTransform => GameCharacter.refs.head?.transform;
         public Transform? BodyTransform => GameCharacter.refs.hip?.transform;
         public Color PlayerColor => GameCharacter?.refs.customization?.PlayerColor?? Color.black;
-        public Vector3 Position => GameCharacter?.Center?? Vector3.zero;
+        public Vector3 Head => GameCharacter?.Center ?? Vector3.zero;
+        public Vector3 Center => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? false;
         public bool Alive => !Dead;
         public bool AnticheatUser => HasFlag(PlayerFlag.Anticheat);
@@ -67,7 +78,7 @@ namespace PeakCheat.Types
         public static implicit operator CheatPlayer(Character character) => character.ToCheatPlayer();
         public static implicit operator global::Player(CheatPlayer player) => player.GamePlayer;
         public static implicit operator Character(CheatPlayer player) => player.GameCharacter;
-        public static implicit operator Vector3(CheatPlayer player) => player.Position;
+        public static implicit operator Vector3(CheatPlayer player) => player.Center;
         public static implicit operator Photon.Realtime.Player(CheatPlayer player) => player.PhotonPlayer;
         public static implicit operator PhotonView(CheatPlayer player) => player.View;
     }
