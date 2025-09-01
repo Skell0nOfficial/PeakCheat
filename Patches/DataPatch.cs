@@ -27,7 +27,7 @@ namespace PeakCheat.Patches
                 _data[c] = data;
                 return;
             }
-
+            
             LogUtil.Log(false, $"Couldnt get Character Instance for syncer: {__instance.name}");
         }
     }

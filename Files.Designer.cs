@@ -73,6 +73,16 @@ namespace PeakCheat {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] click {
+            get {
+                object obj = ResourceManager.GetObject("click", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] CloseTab {
             get {
                 object obj = ResourceManager.GetObject("CloseTab", resourceCulture);

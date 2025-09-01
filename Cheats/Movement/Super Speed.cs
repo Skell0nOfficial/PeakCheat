@@ -1,5 +1,4 @@
 ﻿using PeakCheat.Types;
-using System.Linq;
 using UnityEngine;
 
 namespace PeakCheat.Cheats.Movement
@@ -8,6 +7,7 @@ namespace PeakCheat.Cheats.Movement
     {
         public override string Name => "Speed Modifier";
         public override string Description => "Adjusts your speed depending on your scroller";
+        public override SceneType RequiredScene => SceneType.Airport;
         private static float _boost = 1f;
         public override void Method()
         {

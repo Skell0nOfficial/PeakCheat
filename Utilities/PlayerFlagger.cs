@@ -20,7 +20,8 @@ namespace PeakCheat.Utilities
             "CherryOwner"
         };
         public const string ForcedPropertyKey = "PeakCheat::ForcedProperty";
-        private static readonly Dictionary<Action, bool[]> _settings = new Dictionary<Action, bool[]>();
+        private const string SaveKey = "PlayerFlagger::Settings";
+        private static Dictionary<Action, bool[]> _settings = new Dictionary<Action, bool[]>();
         private static Vector2 _scroller = Vector2.zero;
         private enum Action
         {
@@ -37,7 +38,8 @@ namespace PeakCheat.Utilities
             {
                 GUILayout.Label("Players".Bold(40));
                 foreach (var player in CheatPlayer.Others)
-                    GUILayout.Label($"{player.Name} [{string.Join(", ", player.Flags.Select(F => F.ToString()).ToArray())}]".Bold());
+                    if (player.Flags.Length > 0)
+                        GUILayout.Label($"{player.Name} [{string.Join(", ", player.Flags.Select(F => F.ToString()).ToArray())}]".Bold());
             }
 
             GUILayout.Label("Settings".Bold(40));
@@ -56,12 +58,19 @@ namespace PeakCheat.Utilities
                     var name = action.ToString().Replace('_', ' ');
 
                     if (flag == CheatPlayer.PlayerFlag.Anticheat && action == Action.Destroy_Player) continue;
+                    
+                    bool clicked = GUILayout.Toggle(enabled, $"Automatically [{name}] for \"{flag}\" Users");
+                    if (enabled != clicked)
+                    {
+                        if (clicked)
+                            foreach (var player in CheatPlayer.Others)
+                                if (player.HasFlag(flag))
+                                    OnFlag(player, flag);
 
-                    settings[i] = GUILayout.Toggle(enabled, $"Automatically [{name}] for \"{flag}\" Users");
-                    if (settings[i])
-                        foreach (var player in CheatPlayer.Others)
-                            if (player.HasFlag(flag))
-                                OnFlag(player, flag);
+                        AudioUtil.Click();
+                        LogUtil.Log("Saved flagging settings");
+                    }
+                    settings[i] = clicked;
                 }
             }
 
@@ -71,15 +80,23 @@ namespace PeakCheat.Utilities
         bool CheatBehaviour.DelayStart() => true;
         void CheatBehaviour.Start()
         {
+            if (SaveUtil.Get(SaveKey, out Dictionary<Action, bool[]> dict))
+            {
+                LogUtil.Log("Got Flagging Settings");
+                _settings = dict;
+            }
             CheatPlayer.FlagCallback(OnFlag);
             PhotonCallbacks.PropertiesUpdate += CheatCheck;
         }
         void CheatBehaviour.Update()
         {
             if (TimeUtil.CheckTime(3f))
+            {
                 foreach (var player in PlayerUtil.AllPlayers())
                     if (player.PhotonPlayer is Photon.Realtime.Player photonPlayer)
                         CheatCheck(player, photonPlayer.CustomProperties);
+                SaveUtil.Save(_settings, SaveKey);
+            }
         }
         void EventBehaviour.OnEvent(byte code, int sender, object data)
         {

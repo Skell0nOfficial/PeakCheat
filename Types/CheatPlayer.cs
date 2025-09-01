@@ -47,7 +47,17 @@ namespace PeakCheat.Types
         public CharacterData? CharacterData => GameCharacter?.data;
         public Transform? HeadTransform => GameCharacter.refs.head?.transform;
         public Transform? BodyTransform => GameCharacter.refs.hip?.transform;
-        public Color PlayerColor => GameCharacter?.refs.customization?.PlayerColor?? Color.black;
+        public Color PlayerColor
+        {
+            get
+            {
+                try
+                {
+                    return GameCharacter?.refs?.customization?.PlayerColor ?? Color.black;
+                }
+                catch { return Color.black; }
+            }
+        }
         public Vector3 Head => GameCharacter?.Center ?? Vector3.zero;
         public Vector3 Center => GameCharacter?.Center?? Vector3.zero;
         public bool OnGround => CharacterData?.isGrounded?? false;

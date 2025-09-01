@@ -121,6 +121,9 @@
   <data name="ButtonTexture" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\ButtonTexture.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="click" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\click.mp3;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
   <data name="CloseTab" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\CloseTab.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>

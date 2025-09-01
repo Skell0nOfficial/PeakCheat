@@ -10,7 +10,7 @@ namespace PeakCheat.Utilities
         public static bool CheckTime(string key, float delay)
         {
             if (!_times.TryGetValue(key, out var value)) value = 0f;
-            if (Time.time >= value)
+            if (Time.time >= (value * Time.timeScale))
             {
                 _times[key] = Time.time + delay;
                 return true;
@@ -20,7 +20,7 @@ namespace PeakCheat.Utilities
         public static bool CheckTime(string key)
         {
             if (!_times.TryGetValue(key, out var value)) value = 0f;
-            return Time.time >= value;
+            return Time.time >= (value * Time.timeScale);
         }
         public static void SetTime(float delay) => _times[GeneralUtil.GetFrame().Signature()] = Time.time + delay;
         public static void SetTime(string key, float delay) => _times[key] = Time.time + delay;

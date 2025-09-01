@@ -1,4 +1,7 @@
-﻿namespace PeakCheat.Types
+﻿using PeakCheat.Main;
+using PeakCheat.Utilities;
+
+namespace PeakCheat.Types
 {
     public abstract class Cheat
     {
@@ -11,7 +14,7 @@
         public virtual void Init() {}
         public virtual bool Hide() => false;
         public virtual bool DefaultEnabled => false;
-        public int GetID() => (Name + Description).GetHashCode();
+        public int GetID() => GeneralUtil.Compute(Name + Description);
         private bool _enabled = false;
         public bool Enabled
         {
@@ -19,6 +22,7 @@
             set
             {
                 _enabled = value;
+                CheatHandler.SaveCheats();
             }
         }
     }

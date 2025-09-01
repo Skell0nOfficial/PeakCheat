@@ -9,11 +9,11 @@ namespace PeakCheat.Cheats.Movement
         public override SceneType RequiredScene => SceneType.Airport;
         public override void Method()
         {
-            var c = CheatPlayer.LocalPlayer.GameCharacter;
-            if (c.data.isClimbingAnything)
+            if (Character.localCharacter is Character c && c.data is CharacterData dat && dat.isClimbingAnything && c.refs.climbing is CharacterClimbing climb && c.input is CharacterInput input)
             {
-                c.refs.climbing.playerSlide += c.input.movementInput.normalized * 1.3f;
-                Character.GainFullStamina();
+                var move = input.movementInput;
+                climb.playerSlide += move.normalized * 2f;
+                dat.ropePercent += move.y / 7f;
             }
         }
     }

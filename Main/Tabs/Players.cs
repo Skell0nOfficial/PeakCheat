@@ -2,9 +2,7 @@
 using PeakCheat.Utilities;
 using Photon.Pun;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using UnityEngine;
 
 namespace PeakCheat.Main.Tabs
@@ -13,6 +11,12 @@ namespace PeakCheat.Main.Tabs
     {
         public override string Name => "Players";
         public override int Order => 2;
+        private enum Player
+        {
+            All,
+            Others,
+            Host
+        }
         private static string text = UnityEngine.Random.Range(10000, 99999).ToString();
         private static Vector2 scroller = Vector2.zero;
         private static Item[] ItemList = Array.Empty<Item>();
@@ -55,8 +59,20 @@ Server Type: {PhotonNetwork.Server}
 
             var width = Data.Width * .9f;
             var player = Character.observedCharacter;
+            var specific = true;
+            var others = false;
+            var tex = text.ToLower().Trim();
 
-            if (PlayerUtil.AllPlayers().Any(C => C.Name.ToLower().Trim().Contains(text.ToLower().Trim()), out var c)) player = c;
+            bool RenderButton(string text, float height = 18f) => RenderButtonContent(new GUIContent(text));
+            bool RenderButtonContent(GUIContent data, float height = 18f) => GUILayout.Button(data, GUI.skin.button.CreateStyle((Color.white * .01f).WithAlpha(.8f)), GUILayout.Width(width), GUILayout.Height(Data.Height / height));
+
+            if (tex.Contains("array:"))
+            {
+                specific = false;
+                others = !text.Split(':')[1].StartsWith("a");
+            }
+            
+            if (PlayerUtil.AllPlayers().Any(C => C.Name.ToLower().Trim().Contains(tex), out var c)) player = c;
             if (player == null)
             {
                 PlayerError("Cant find a player!?");
@@ -64,72 +80,51 @@ Server Type: {PhotonNetwork.Server}
             }
 
             GUILayout.BeginVertical();
-            scroller = GUILayout.BeginScrollView(scroller, UnityUtil.CreateStyle(GUI.skin.scrollView, Color.clear), GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
+            scroller = GUILayout.BeginScrollView(scroller, GUI.skin.scrollView.CreateStyle(Color.clear), GUILayout.Width(Data.Width * .95f), GUILayout.Height(Data.Size.y * .8f));
             text = GUILayout.TextField(text, GUILayout.Width(width), GUILayout.Height(Data.Height / 17f));
-            GUILayout.Label($"Current Player: {player.characterName}", GUILayout.Width(width), GUILayout.Height(Data.Height / 20f));
-            bool RenderButton(string text) => RenderButtonContent(new GUIContent(text));
-            bool RenderButtonContent(GUIContent data) => GUILayout.Button(data, UnityUtil.CreateStyle(GUI.skin.button, Color.black), GUILayout.Width(width), GUILayout.Height(Data.Height / 14f));
+            GUILayout.Label(specific? $"Current Player: {player.characterName}": others? "Others": "All", GUILayout.Width(width), GUILayout.Height(Data.Height / 20f));
 
             foreach (var pair in PlayerScript.GetMethods())
             {
-                var name = pair.Key;
-                var method = pair.Value;
-
-                if (RenderButton(name))
+                if (RenderButton(pair.Key))
                 {
-                    object[] objects = new object[0];
-                    if (method.GetParameters().Length == 1)
+                    AudioUtil.Click();
+
+                    if (specific)
                     {
-                        var param = method.GetParameters()[0];
-                        if (param == null) continue;
-                        if (param.ParameterType == typeof(Vector3)) objects = new object[] { player.Center };
-                        else if (param.ParameterType == typeof(CheatPlayer)) objects = ((object)player.ToCheatPlayer()).SingleArray();
+                        PlayerScript.ExecuteScript(player, pair);
+                        continue;
                     }
 
-                    try
-                    {
-                        var result = method.Invoke(null, objects);
-
-                        if (method.ReturnType == typeof(void))
-                        {
-                            LogUtil.Log($"Invoked {name}, no return value");
-                            continue;
-                        }
-
-                        if (result is bool value)
-                        {
-                            LogUtil.Log($"Invoked {name}, result: {value.ToString().ToLower()}");
-                            continue;
-                        }
-
-                        LogUtil.Log($"Invoked {name}, result: {result}");
-                    }
-                    catch (Exception error)
-                    {
-                        LogUtil.Log(true, $@"
-CANT INVOKE {name.ToUpper()}
-
-
-Message: {error.Message}
-Source: {error.Source}");
-                    }
+                    (others ? PlayerUtil.OtherPlayers() : PlayerUtil.AllPlayers()).Execute(C => PlayerScript.ExecuteScript(C, pair));
                 }
             }
-            foreach (var item in ItemList)
+            foreach (var item in ItemList.OrderBy(I => I.GetName()))
             {
                 var name = item.UIData.itemName;
                 var objName = item.name.Replace("(Clone)", "");
-                var C = player.ToCheatPlayer();
-                bool Button(string type) => RenderButtonContent(new GUIContent($"{type} {name}", item.UIData.icon));
 
-                if (Button("Give")) C.GiveItem(objName);
-                if (Button("Drop")) PhotonNetwork.InstantiateItem(objName, C.Center + (C.BodyTransform?.forward * 1.5f ?? Vector3.forward), Quaternion.identity);
-                
+                void Run(Action<CheatPlayer> action)
+                {
+                    if (specific)
+                    {
+                        action(player.ToCheatPlayer());
+                        return;
+                    }
+
+                    (others ? PlayerUtil.OtherPlayers() : PlayerUtil.AllPlayers()).Execute(C => action(C));
+                }
+
+                bool Button(string type) => RenderButtonContent(new GUIContent($"{type} {name}", item.UIData.icon), 14);
+
+                if (Button("Give")) Run(C => C.GiveItem(objName));
+                if (Button("Drop")) Run(C => PhotonNetwork.InstantiateItem(objName, C.Center + (C.BodyTransform?.forward * .4f ?? Vector3.forward), Quaternion.identity));
+
                 string action = item.UIData.mainInteractPrompt.Trim().ToLower();
-                if ((action == "eat" || action == "drink") && Button("Feed")) C.FeedItem(objName);
-                if ((action == "use" || action == "commune") && Button("Use")) C.FeedItem(objName);
+                if ((action == "eat" || action == "drink") && Button("Feed")) Run(C => C.FeedItem(objName));
+                if ((action == "use" || action == "commune") && Button("Use")) Run(C => C.FeedItem(objName));
             }
-
+            
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
         }

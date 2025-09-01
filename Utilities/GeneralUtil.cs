@@ -1,4 +1,4 @@
-﻿using ExitGames.Client.Photon;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,11 +10,14 @@ namespace PeakCheat.Utilities
 {
     public static class GeneralUtil
     {
+        public static string GetJSON(this object obj) => JsonConvert.SerializeObject(obj, Formatting.Indented);
         public static async void DelayInvoke(this Action action, float delay)
         {
             await Task.Delay(Mathf.RoundToInt(delay * 1000f));
             action();
         }
+        public static bool InRange(this float f, float min, float max) => f <= min && f >= max;
+        public static bool IsValid(this float f, float range) => float.IsFinite(f) && !float.IsNaN(f) && f.InRange(-Mathf.Abs(range), Mathf.Abs(range));
         public static T[] SingleArray<T>(this T obj) => new T[] { obj };
         public static List<T> SingleList<T>(this T obj) => SingleArray(obj).ToList();
         public static T[] DeleteDuplicates<T, KeyValue>(this IEnumerable<T> values, Func<T, KeyValue> keySelector)

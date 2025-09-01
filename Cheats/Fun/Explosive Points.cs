@@ -13,16 +13,17 @@ namespace PeakCheat.Cheats.Fun
         public override SceneType RequiredScene => SceneType.Airport;
         public override void Method()
         {
-            if (CheatPlayer.LocalPlayer.Dead && Character.localCharacter.input.pingWasPressed)
+            if ((CheatPlayer.LocalPlayer?.Dead?? false) && (Character.localCharacter?.input?.pingWasPressed?? false))
                 PrefabUtil.SummonExplosion(Character.observedCharacter.Head);
         }
         bool PointerPatch.Prefix(PointPinger pointer, Vector3 pos)
         {
             if (pointer.TryGetComponent<Character>(out var c) && c.IsLocal && CheatHandler.IsEnabled<ExplosivePoints>())
             {
-                GeneralUtil.DelayInvoke(() => PrefabUtil.SummonExplosion(pos), .4f);
+                GeneralUtil.DelayInvoke(() => PrefabUtil.SummonExplosion(pos), .2f);
                 return false;
             }
+
             return true;
         }
     }

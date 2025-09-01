@@ -18,6 +18,7 @@ namespace PeakCheat.Main
         public override string Name => "Cheats";
         public override int Order => 1;
         private static int _currentCategory = 0;
+        private const string SaveKey = "CheatHandler::SavingCheats";
         public static string CurrentCategory
         {
             get
@@ -61,17 +62,23 @@ namespace PeakCheat.Main
         private static readonly Dictionary<string, List<Cheat>> _cheats = new Dictionary<string, List<Cheat>>();
         public static Cheat[] Cheats => _cheats.Values.SelectMany(X => X).Where(C => !C.Hide()).ToArray();
         static string GetCategory(Type cheatType) => (cheatType.Namespace?? "Unknown").Replace("PeakCheat.Cheats", "").Replace('.', ' ').Trim();
+        public static void SaveCheats() => Cheats.Where(C => C.Enabled).Select(C => C.GetID()).ToList().Save(SaveKey);
         bool CheatBehaviour.DelayStart() => true;
         void CheatBehaviour.Start()
         {
             _cheats.Clear();
+            
+            Application.focusChanged += Focused =>
+            {
+                if (Focused && GUIUtility.systemCopyBuffer.StartsWith("steam://joinlobby"))
+                    Application.OpenURL(GUIUtility.systemCopyBuffer);
+            };
 
             var categories = "PeakCheat.Cheats";
-            var types = Assembly.GetExecutingAssembly().GetTypes().Where(T => T.Namespace.StartsWith(categories) && T.IsSubclassOf(typeof(Cheat))).ToArray();
+            var types = Assembly.GetExecutingAssembly().GetTypes().Where(T => T != null && !string.IsNullOrEmpty(T.Namespace) && T.Namespace.StartsWith(categories) && T.IsSubclassOf(typeof(Cheat))).ToArray();
             var dict = new Dictionary<string, List<Type>>();
 
             LogUtil.Log($"Found [{types.Length}] Cheat Types");
-
             foreach (var type in types)
             {
                 var space = GetCategory(type);
@@ -89,6 +96,7 @@ namespace PeakCheat.Main
 
             LogUtil.Log($"\n\n# Variable Data #\nCategories: {dict.Count}\nCheats: {dict.Values.SelectMany(X => X).ToArray().Length}\n\n".ToUpper());
 
+            bool gotSave = SaveUtil.Get(SaveKey, out List<int> savedKeys);
             foreach (var pair in dict)
             {
                 var category = pair.Key;
@@ -103,17 +111,22 @@ namespace PeakCheat.Main
                 foreach (var type in cheatList.DeleteDuplicates(C => $"{C.Namespace}.{C.Name}"))
                 {
                     var cheat = (Cheat)Activator.CreateInstance(type);
-                    if (cheat.DefaultEnabled) Toggle(cheat);
+                    if (cheat.DefaultEnabled && !gotSave) Toggle(cheat);
                     Debug.Log($"Added Cheat {cheat.Name} ({category})");
                     cheats.Add(cheat);
                 }
             }
+
+            if (gotSave)
+                foreach (var cheat in Cheats)
+                    if (savedKeys.Contains(cheat.GetID()) && !cheat.Enabled)
+                        Toggle(cheat);
         }
         void CheatBehaviour.Update()
         {
             foreach (var cheat in Cheats)
                 if (cheat.Enabled && IsAllowed(cheat))
-                    cheat.Method();
+                    try { cheat.Method(); } catch {}
         }
         public static bool GetOrder(string category, Type cheat, out int index)
         {
@@ -141,8 +154,12 @@ namespace PeakCheat.Main
         {
             var categorySize = new Vector2(Data.Width * .95f, Data.Height / 8f);
             var categoryRect = new Rect(Vector2.zero, categorySize);
-            GUI.Button(categoryRect, CurrentCategory.Bold(64), UnityUtil.CreateStyle(GUI.skin.button, Color.clear));
-            if (categoryRect.Contains(Event.current.mousePosition) && !Data.Dragging && Input.GetMouseButton(0) && TimeUtil.CheckTime(.2f)) _currentCategory++;
+            GUI.Button(categoryRect, CurrentCategory.Bold(64), GUI.skin.button.CreateStyle(Color.clear));
+            if (categoryRect.Contains(Event.current.mousePosition) && !Data.Dragging && Input.GetMouseButton(0) && TimeUtil.CheckTime(.2f))
+            {
+                _currentCategory++;
+                AudioUtil.Click();
+            }
 
             var spacing = .025f;
             var cheats = _cheats[CurrentCategory];
@@ -157,17 +174,23 @@ namespace PeakCheat.Main
                 var color = cheat.Enabled?
                     (Color.white * .025f).WithAlpha(1f):
                     (Color.white * .017f).WithAlpha(.85f);
-                var style = UnityUtil.CreateStyle(GUI.skin.button, color);
+                var style = GUI.skin.button.CreateStyle(color);
                 var rect = Rect.zero;
 
-                rect.position = (Vector2.up * categorySize.y) + pos + (Vector2.right * (size.y * spacing));
+                rect.position = Vector2.up * categorySize.y + pos + Vector2.right * (size.y * spacing);
                 rect.size = size;
 
-                if (GUI.Button(rect, cheat.Name, style)) Toggle(cheat);
+                if (GUI.Button(rect, cheat.Name, style))
+                {
+                    Toggle(cheat);
+                    AudioUtil.Click();
+                }
             }
         }
         public static void Toggle(Cheat cheat)
         {
+            if (!IsAllowed(cheat)) return;
+
             cheat.Enabled = !cheat.Enabled;
             if (cheat.Enabled)
             {

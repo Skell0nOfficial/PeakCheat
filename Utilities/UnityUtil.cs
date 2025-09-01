@@ -54,6 +54,19 @@ namespace PeakCheat.Utilities
             if (TimeUtil.CheckTime(.2f) && (Mathf.Abs(_previousFPS - GetFPS) >= 4)) _previousFPS = GetFPS;
             return _previousFPS;
         }
+        public static T TempComponent<T>(this GameObject? parent) where T : Component
+        {
+            var obj = new GameObject($"TempComp:{Time.time}:{typeof(T).Name}");
+
+            if (parent != null)
+            {
+                obj.transform.position = parent.transform.position;
+                obj.transform.parent = parent.transform;
+            }
+
+            GameObject.Destroy(obj, 1f);
+            return obj.AddComponent<T>();
+        }
         public static string WithColor(this string str, Color c) => $"<color=#{ColorUtility.ToHtmlStringRGBA(c)}>{str}</color>";
         public static string Bold(this string str) => $"<b>{str}</b>";
         public static string Bold(this string str, int size) => Size(Bold(str), size);
@@ -263,6 +276,8 @@ namespace PeakCheat.Utilities
                 z = modifier(vector.z)
             };
         }
+        public static bool All(this Vector3 vector, Func<float, bool> condition) => condition(vector.x) && condition(vector.y) && condition(vector.z);
+        public static bool Any(this Vector3 vector, Func<float, bool> condition) => condition(vector.x) || condition(vector.y) || condition(vector.z);
         public static Vector3 Orbit(this Transform transform) => transform.position.Orbit();
         public static Vector3 Orbit(this Vector3 position) => position + OrbitVector();
         public static Vector3 OrbitVector() => OrbitVector(50f);

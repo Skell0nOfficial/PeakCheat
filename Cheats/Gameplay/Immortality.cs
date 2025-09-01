@@ -14,10 +14,11 @@ namespace PeakCheat.Cheats.Gameplay
         public override void Disable() => FaintPatch.PassOut -= Unfaint;
         public override void Method()
         {
-            CheatPlayer.LocalPlayer.Revive();
-            Character.localCharacter.data.fallSeconds = 0f;
-            if (Character.localCharacter.refs.afflictions.statusSum != 0)
-                CheatPlayer.LocalPlayer.ResetStatuses();
+            if (!(Character.localCharacter is Character c)) return;
+            c.ToCheatPlayer().Revive();
+            c.data.fallSeconds = 0f;
+            if (c.refs.afflictions.statusSum != 0)
+                c.ToCheatPlayer().ResetStatuses();
         }
         public static void Unfaint(Character character)
         {

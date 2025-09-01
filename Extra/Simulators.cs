@@ -1,4 +1,6 @@
 ﻿using PeakCheat.Types;
+using PeakCheat.Utilities;
+using Photon.Pun;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,7 +50,7 @@ namespace PeakCheat.Extra
         void TP()
         {
             int num = 1;
-
+            
             foreach (var c in PlayerHandler.GetAllPlayerCharacters())
             {
                 if (c.IsLocal) continue;
@@ -88,7 +90,7 @@ namespace PeakCheat.Extra
             var obj = Photon.Pun.PhotonNetwork.InstantiateItem("MagicBean", Vector3.zero, Quaternion.identity);
             if (obj.TryGetComponent<Photon.Pun.PhotonView>(out var view))
                 foreach (var pos in PeakCheat.Utilities.UnityUtil.GetDirections())
-                    view.RPC("GrowVineRPC", Photon.Pun.RpcTarget.All, curPos + pos, t.up, 50f);
+                    view.RPC("GrowVineRPC", Photon.Pun.RpcTarget.All, curPos + pos, t.up, 250f);
         }
         public static void CannonPP()
         {
@@ -117,7 +119,7 @@ namespace PeakCheat.Extra
                     }
                 }, .5f * i);
             }
-
+            
             PeakCheat.Utilities.GeneralUtil.DelayInvoke(() =>
             {
                 foreach (var view in views)

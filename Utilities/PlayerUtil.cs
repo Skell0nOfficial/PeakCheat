@@ -4,6 +4,7 @@ using Photon.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using Zorro.Core;
 using Zorro.PhotonUtility;
@@ -56,11 +57,10 @@ namespace PeakCheat.Utilities
         {
             if (Singleton<MapHandler>.Instance is MapHandler map)
             {
-                var seg = map.GetCurrentSegment();
-
-                return map.segments[(int)seg]?.reconnectSpawnPos.position ?? Vector3.zero;
+                return map.segments[(int)map.GetCurrentSegment()]?.reconnectSpawnPos.position ?? Vector3.zero;
             }
-            return Vector3.zero;
+            
+            return Character.AllCharacters.Any(C => !C.data.dead, out var character)? character.Head + (Vector3.up * 2f): Vector3.zero;
         }
         public static void PlayerRPC(this CheatPlayer player, string RPC) => PlayerRPC(player, RPC, RpcTarget.All);
         public static void PlayerRPC(this CheatPlayer player, string RPC, RpcTarget target) => PlayerRPC(player, RPC, target, Array.Empty<object>());
@@ -113,7 +113,7 @@ namespace PeakCheat.Utilities
         public static void SpazCosmetics()
         {
             float perSecond = 2f;
-            float seconds = 10f;
+            float seconds = 5f;
 
             for (float i = 1f; i <= seconds * perSecond; i++)
                 GeneralUtil.DelayInvoke(() =>
@@ -137,8 +137,7 @@ namespace PeakCheat.Utilities
                 return;
             }
 
-            var dir = UnityUtil.RandomDirection();
-            for (int i = 0; i < 50; i++) SetVelocity(player, dir * (i + 1));
+            for (int i = 0; i < 50; i++) SetVelocity(player, UnityUtil.RandomDirection() * (i + 1));
         }
         public static void Jump(this CheatPlayer player) => Jump(player, true, true);
         public static void Jump(this CheatPlayer player, bool ForceJump, bool PalJump)
@@ -163,6 +162,7 @@ namespace PeakCheat.Utilities
                 PlayerRPC(player, "RPCA_Fall", player, seconds);
                 return;
             }
+
             PlayerRPC(player, "RPCA_UnFall");
         }
         public static void Revive(this CheatPlayer player)
@@ -188,18 +188,20 @@ namespace PeakCheat.Utilities
                 LogUtil.Log($"Blocked AntiCheat user: {player.Name}");
                 return;
             }
+
             if (!player.GetItem(out var item))
             {
                 LogUtil.Log(false, $"Couldnt force consume Item (Instance is null)");
                 return;
             }
+
             if (item == null)
             {
                 LogUtil.Log(false, $"Couldnt force consume Item (GetItem = true, Instance is null)");
                 return;
             }
+
             item.photonView.RPC("Consume", RpcTarget.All, -1);
-            LogUtil.Log($"Force Consumed Item-Instance \"{item.name}\" for player: {player.Name}");
         }
         public static void Teleport(this CheatPlayer player, Vector3 pos)
         {
@@ -215,6 +217,7 @@ namespace PeakCheat.Utilities
             if (!Exploits.TryGetPrefab<MagicBean>(out var obj) || obj == null) return;
             if (!PhotonNetwork.InstantiateItem(obj.name, FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var viewObj)) return;
 
+            if (!player.AnticheatUser) Fall(player, .4f);
             if (viewObj is PhotonView view)
                 foreach (var dir in UnityUtil.GetDirections())
                 {
@@ -235,7 +238,7 @@ namespace PeakCheat.Utilities
         public static void SetVelocity(this CheatPlayer player, Vector3 velocity)
         {
             foreach (var part in player.GameCharacter.refs.ragdoll.partList)
-                PlayerRPC(player, "RPCA_AddForceToBodyPart", new object[] { part.partType, Vector3.zero, velocity * 30f });
+                PlayerRPC(player, "RPCA_AddForceToBodyPart", player, new object[] { part.partType, Vector3.zero, velocity * 30f });
         }
         public static void BreakGame(this CheatPlayer player)
         {
@@ -270,18 +273,29 @@ namespace PeakCheat.Utilities
             if (values.Length == 0) return;
             PlayerRPC(player, "ApplyStatusesFromFloatArrayRPC", values.Select(V => value).ToArray());
         }
-        public static void Crash(this CheatPlayer player)
+        public static async void Crash(this CheatPlayer player)
         {
-            if (!TimeUtil.CheckTime($"Crash:{player.Name}", 15f)) return;
+
+            if (!TimeUtil.CheckTime($"Crash:{player.Name}", 3f)) return;
             if (!Exploits.TryGetPrefab<Dynamite>(out var obj) || obj == null) return;
             if (!PhotonNetwork.InstantiateItem(obj.name, FarAway, Quaternion.identity).TryGetComponent<PhotonView>(out var view)) return;
-            LogUtil.Log($"Crashing player: {player.Name}");
-
+            
             view.RPC("SetKinematicRPC", player.PhotonPlayer, true, player.Position(), Quaternion.identity);
-            for (int i = 0; i < 2000; i++) view.RPC("RPC_Explode", player.PhotonPlayer);
+            await Task.Delay(200);
+            int power = 1080;
+            for (int i = 0; i < power; i++)
+            {
+                if (i == (power - (power / 10))) view.RPC("SetKinematicRPC", player.PhotonPlayer, true, NaN, Quaternion.identity);
+                view.RPC("RPC_Explode", player.PhotonPlayer);
+            }
+            
+            await Task.Delay(1000);
+            for (int i = 0; i < 10; i++) PhotonNetwork.SendAllOutgoingCommands();
 
-            PhotonNetwork.SendAllOutgoingCommands();
+            LogUtil.Log($"Sent Crash Payload :: {Time.frameCount / PhotonNetwork.GetPing()}");
+            PhotonNetwork.Destroy(view);
         }
+        public static void Destroy(this CheatPlayer player) => PhotonNetwork.DestroyPlayerObjects(player.Actor?? -1, false);
         public static void BombPlayer(this CheatPlayer player) => BombPlayers(player.SingleArray());
         public static void BombPlayers(this CheatPlayer[] players)
         {
