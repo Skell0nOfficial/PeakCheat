@@ -1,4 +1,5 @@
 ﻿using PeakCheat.Types;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -34,9 +35,9 @@ namespace PeakCheat.Utilities
             Vector3.up,
             Vector3.down
         };
-        private static Dictionary<string, Texture2D> _cachedTextures = new Dictionary<string, Texture2D>();
-        private static Dictionary<LineConstructor, Vector2[]> _linePositions = new Dictionary<LineConstructor, Vector2[]>();
-        private static Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
+        private static readonly Dictionary<string, Texture2D> _cachedTextures = new Dictionary<string, Texture2D>();
+        private static readonly Dictionary<LineConstructor, Vector2[]> _linePositions = new Dictionary<LineConstructor, Vector2[]>();
+        private static readonly Dictionary<string, GUIStyle> _styles = new Dictionary<string, GUIStyle>();
         public static void ForEachStates(this GUIStyle style, Action<GUIStyleState, bool> method)
         {
             method(style.onActive, true);
@@ -48,7 +49,7 @@ namespace PeakCheat.Utilities
             method(style.onNormal, false);
             method(style.normal, false);
         }
-        public static bool OnGround() => CheatUtil.CurrentScene >= SceneType.Airport? CheatPlayer.LocalPlayer?.OnGround ?? false: false;
+        public static bool OnGround() => CheatUtil.CurrentScene >= SceneType.Airport && (CheatPlayer.LocalPlayer?.OnGround ?? false);
         public static int FPS()
         {
             if (TimeUtil.CheckTime(.2f) && (Mathf.Abs(_previousFPS - GetFPS) >= 4)) _previousFPS = GetFPS;

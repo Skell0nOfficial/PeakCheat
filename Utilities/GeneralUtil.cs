@@ -1,10 +1,13 @@
 ﻿using Newtonsoft.Json;
+using Photon.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using PhotonHash = ExitGames.Client.Photon.Hashtable;
 
 namespace PeakCheat.Utilities
 {
@@ -16,6 +19,31 @@ namespace PeakCheat.Utilities
             await Task.Delay(Mathf.RoundToInt(delay * 1000f));
             action();
         }
+        public static void DelayInvoke(this Action action, Func<bool> check) => DelayInvoke(action, check, null);
+        public static async void DelayInvoke(this Action action, Func<bool> check, CancellationToken? cancellationToken)
+        {
+            while (!check.Invoke())
+            {
+                if (cancellationToken is CancellationToken token && token.IsCancellationRequested) return;
+
+                await Task.Yield();
+            }
+
+            action();
+        }
+        public static void CopyList<T>(this List<T> first, IEnumerable<T> second)
+        {
+            first.Clear();
+            first.AddRange(second);
+        }
+        public static PhotonHash ConcatHashtable(this PhotonHash first, PhotonHash second)
+        {
+            var hash = new PhotonHash();
+            hash.Merge(first);
+            hash.Merge(second);
+            return hash;
+        }
+        public static PhotonHash CreateHashtable<TKey, TValue>(this Dictionary<TKey, TValue> dict) => (PhotonHash)dict.ToDictionary(kvp => (object)(kvp.Key ?? default!), kvp => (object)(kvp.Value ?? default!));
         public static bool InRange(this float f, float min, float max) => f <= min && f >= max;
         public static bool IsValid(this float f, float range) => float.IsFinite(f) && !float.IsNaN(f) && f.InRange(-Mathf.Abs(range), Mathf.Abs(range));
         public static T[] SingleArray<T>(this T obj) => new T[] { obj };

@@ -1,9 +1,7 @@
 ﻿using PeakCheat.Types;
 using PeakCheat.Utilities;
 using Photon.Pun;
-using System.Threading.Tasks;
 using UnityEngine;
-using Zorro.UI.Modal;
 
 namespace PeakCheat.Cheats.Abusive
 {
@@ -12,8 +10,10 @@ namespace PeakCheat.Cheats.Abusive
         public override string Name => "Break Room";
         public override string Description => "Encrypts every room operation, causing nothing to run on the server";
         public override SceneType RequiredScene => SceneType.Airport;
-        public override async void Enable()
+        public override void Enable()
         {
+            if (!PhotonNetwork.InRoom) return;
+
             if (RunManager.Instance?.photonView is PhotonView run) run.ForceDestroy();
             if (GameUtils.instance?.photonView is PhotonView game) game.ForceDestroy();
             if (GameOverHandler.Instance?.view is PhotonView game2) game2.ForceDestroy();
@@ -24,14 +24,8 @@ namespace PeakCheat.Cheats.Abusive
             if (Object.FindFirstObjectByType<PeakSequence>()?.view is PhotonView sequence) sequence.ForceDestroy();
             if (Object.FindFirstObjectByType<CharacterSpawner>()?.photonView is PhotonView spawner) spawner.ForceDestroy();
             if (Object.FindFirstObjectByType<AirportCheckInKiosk>()?.photonView is PhotonView kiosk) kiosk.ForceDestroy();
+
             Enabled = false;
-            
-            await Task.Delay(2000);
-            Modal.OpenModal(new DefaultHeaderModalOption("PeakCheat".WithColor((Color.white * .4f).WithAlpha(1f)), "This room is now broken, you sure you wanna stay in it?"), new ModalButtonsOption(new ModalButtonsOption.Option[]
-            {
-                new ModalButtonsOption.Option("Stay", () => {}),
-                new ModalButtonsOption.Option("Leave", () => PhotonNetwork.LeaveRoom(true)),
-            }));
         }
     }
 }

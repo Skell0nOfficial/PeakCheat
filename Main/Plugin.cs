@@ -1,8 +1,6 @@
 ﻿using BepInEx;
 using HarmonyLib;
 using PeakCheat.Utilities;
-using System;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Zorro.UI.Modal;

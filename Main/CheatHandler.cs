@@ -5,11 +5,14 @@ using PeakCheat.Cheats.Movement;
 using PeakCheat.Cheats.Visuals;
 using PeakCheat.Types;
 using PeakCheat.Utilities;
+using Photon.Pun;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using Zorro.UI.Modal;
 
 namespace PeakCheat.Main
 {
@@ -17,17 +20,7 @@ namespace PeakCheat.Main
     {
         public override string Name => "Cheats";
         public override int Order => 1;
-        private static int _currentCategory = 0;
         private const string SaveKey = "CheatHandler::SavingCheats";
-        public static string CurrentCategory
-        {
-            get
-            {
-                if (_currentCategory >= _cheats.Count) _currentCategory = 0;
-
-                return _cheats.ToArray()[_currentCategory].Key;
-            }
-        }
         private static readonly Dictionary<string, Type[]> _orderList = new Dictionary<string, Type[]>()
         {
             ["Abusive"] = new Type[] { },
@@ -60,6 +53,7 @@ namespace PeakCheat.Main
             }
         };
         private static readonly Dictionary<string, List<Cheat>> _cheats = new Dictionary<string, List<Cheat>>();
+        private static Vector2 _scroller = Vector2.zero;
         public static Cheat[] Cheats => _cheats.Values.SelectMany(X => X).Where(C => !C.Hide()).ToArray();
         static string GetCategory(Type cheatType) => (cheatType.Namespace?? "Unknown").Replace("PeakCheat.Cheats", "").Replace('.', ' ').Trim();
         public static void SaveCheats() => Cheats.Where(C => C.Enabled).Select(C => C.GetID()).ToList().Save(SaveKey);
@@ -70,8 +64,12 @@ namespace PeakCheat.Main
             
             Application.focusChanged += Focused =>
             {
-                if (Focused && GUIUtility.systemCopyBuffer.StartsWith("steam://joinlobby"))
-                    Application.OpenURL(GUIUtility.systemCopyBuffer);
+                if (PhotonNetwork.InRoom) return;
+                if (Focused && GUIUtility.systemCopyBuffer.Contains("steam://joinlobby"))
+                {
+                    string dat = GUIUtility.systemCopyBuffer.ToLower().Trim();
+                    Modal.OpenYesNoModal(new DefaultHeaderModalOption("Join Lobby?", $"Would you like to join {(ulong.TryParse(dat.Split('/').Last(C => !string.IsNullOrEmpty(C) && C.ToString().StartsWith("7656")), out var ID)? SteamFriends.GetFriendPersonaName(new CSteamID(ID)): "Unknown")}'s Steam Lobby?"), "No Thanks", "Sure!", () => {}, () => Application.OpenURL(dat));
+                }
             };
 
             var categories = "PeakCheat.Cheats";
@@ -124,8 +122,13 @@ namespace PeakCheat.Main
         }
         void CheatBehaviour.Update()
         {
+            if (TimeUtil.CheckTime(3f) && PhotonNetwork.InRoom)
+            {
+                var service = GameHandler.GetService<SteamLobbyHandler>();
+                if (service.InSteamLobby()) service.LeaveLobby();
+            }
             foreach (var cheat in Cheats)
-                if (cheat.Enabled && IsAllowed(cheat))
+                if (cheat.Enabled && SceneAllowed(cheat))
                     try { cheat.Method(); } catch {}
         }
         public static bool GetOrder(string category, Type cheat, out int index)
@@ -152,53 +155,88 @@ namespace PeakCheat.Main
         public static bool TryGetCheat(Type type, out Cheat? cheat) => Cheats.ToDictionary(C => C.GetType()).TryGetValue(type, out cheat);
         public override void Render()
         {
-            var categorySize = new Vector2(Data.Width * .95f, Data.Height / 8f);
-            var categoryRect = new Rect(Vector2.zero, categorySize);
-            GUI.Button(categoryRect, CurrentCategory.Bold(64), GUI.skin.button.CreateStyle(Color.clear));
-            if (categoryRect.Contains(Event.current.mousePosition) && !Data.Dragging && Input.GetMouseButton(0) && TimeUtil.CheckTime(.2f))
+            var scrollStyle = GUIStyle.none;
+            _scroller = GUILayout.BeginScrollView(_scroller, false, true, scrollStyle, scrollStyle);
+            GUILayout.BeginVertical();
+
+            foreach (var pair in _cheats)
             {
-                _currentCategory++;
-                AudioUtil.Click();
-            }
+                GUILayout.Label(pair.Key.Bold(20));
 
-            var spacing = .025f;
-            var cheats = _cheats[CurrentCategory];
-            var maxWidth = Data.Width * .95f;
-            var size = new Vector2(maxWidth / 3f, 50f);
-            var positions = UnityUtil.GenerateLinePositions(cheats.Count, spacing, Data.Width * .9f, size);
-
-            int num = 0;
-            foreach (var pos in positions)
-            {
-                var cheat = cheats[num++];
-                var color = cheat.Enabled?
-                    (Color.white * .025f).WithAlpha(1f):
-                    (Color.white * .017f).WithAlpha(.85f);
-                var style = GUI.skin.button.CreateStyle(color);
-                var rect = Rect.zero;
-
-                rect.position = Vector2.up * categorySize.y + pos + Vector2.right * (size.y * spacing);
-                rect.size = size;
-
-                if (GUI.Button(rect, cheat.Name, style))
+                foreach (var cheat in pair.Value)
                 {
-                    Toggle(cheat);
-                    AudioUtil.Click();
+                    if (cheat.Hide()) continue;
+                    void SetMessage(string msg, bool success)
+                    {
+                        cheat.SetData(223, Time.time);
+                        cheat.SetData(224, msg);
+                        cheat.SetData(225, success);
+                    }
+
+                    var enabled = cheat.Enabled;
+                    var style = GUI.skin.button.CreateStyle((Color.white * (enabled ? .025f : .017f)).WithAlpha(enabled ? 1f : .85f));
+                    var content = GUIContent.Temp(cheat.Name.Bold());
+
+                    if (cheat.GetData<bool>(225, out var b) && b is bool successMessage &&
+                        cheat.GetData<string>(224, out var str) && str is string message &&
+                        cheat.GetData<float>(223, out var time) && time is float messageTime &&
+                        Time.time - messageTime <= (.05f * message.Length))
+                        content = GUIContent.Temp($"<color=#{(successMessage? "2e9415" : "8c1f0e")}>{message}</color>".Bold());
+
+                    var rect = GUILayoutUtility.GetRect(content, style, new GUILayoutOption[]
+                    {
+                        GUILayout.Width(Data.Width * .9f),
+                        GUILayout.Height(Data.Height / 13f)
+                    });
+
+                    if (rect.Contains(Event.current.mousePosition))
+                    {
+                        if (Input.GetMouseButton(1)) content = GUIContent.Temp($"Description: {cheat.Description}".Bold());
+                        if (Input.GetMouseButtonDown(0))
+                        {
+                            if (!SceneAllowed(cheat))
+                            {
+                                SetMessage($"You cant use this module in scene {CheatUtil.CurrentScene}!", false);
+                                return;
+                            }
+
+                            bool worked = Toggle(cheat, out var m);
+                            if (m is string && !string.IsNullOrEmpty(m)) SetMessage(m, worked);
+                        }
+                    }
+
+                    GUI.Button(rect, content, style);
                 }
             }
-        }
-        public static void Toggle(Cheat cheat)
-        {
-            if (!IsAllowed(cheat)) return;
 
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+        }
+        public static bool Toggle(Cheat cheat) => Toggle(cheat, out _);
+        public static bool Toggle(Cheat cheat, out string? message)
+        {
+            if (!SceneAllowed(cheat))
+            {
+                message = $"{cheat.Name} is not allowed";
+                return false;
+            }
+            if (!TimeUtil.CheckTime($"Toggle:{cheat.Name}", .1f))
+            {
+                message = null;
+                return false;
+            }
+
+            message = null;
             cheat.Enabled = !cheat.Enabled;
             if (cheat.Enabled)
             {
                 cheat.Enable();
-                return;
+                return true;
             }
+
             cheat.Disable();
+            return true;
         }
-        public static bool IsAllowed(Cheat cheat) => (int)cheat.RequiredScene <= (int)CheatUtil.CurrentScene;
+        public static bool SceneAllowed(Cheat cheat) => (int)cheat.RequiredScene <= (int)CheatUtil.CurrentScene;
     }
 }

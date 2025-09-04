@@ -1,5 +1,5 @@
 ﻿using PeakCheat.Types;
-using UnityEngine;
+using Steamworks;
 using UnityEngine.SceneManagement;
 
 namespace PeakCheat.Utilities
@@ -20,7 +20,7 @@ namespace PeakCheat.Utilities
         private void SceneChanged(Scene scene)
         {
             var name = scene.name.Trim().ToLower();
-
+            
             if (name.Contains("title"))
             {
                 CurrentScene = SceneType.Menu;

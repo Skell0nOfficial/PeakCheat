@@ -8,7 +8,7 @@ namespace PeakCheat.Main.Tabs
         public override string Name => "Console";
         public override void Render()
         {
-
+            
         }
     }
 }

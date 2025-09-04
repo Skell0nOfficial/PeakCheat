@@ -46,7 +46,7 @@ namespace PeakCheat.Cheats.Movement
             dat.passedOutOnTheBeach = 0f;
 
             ragdoll.HaltBodyVelocity();
-            ragdoll.MoveAllRigsInDirection(vector.normalized);
+            ragdoll.MoveAllRigsInDirection(vector.normalized * .1f);
         }
         public override void Disable() => Patch(false);
         private static void Patch(bool enabled)

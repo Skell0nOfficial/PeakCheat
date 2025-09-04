@@ -25,12 +25,13 @@ namespace PeakCheat.Types
             Atlas,
             Cherry,
             Anticheat,
+
         }
         public string Name => PhotonPlayer?.NickName ?? "null";
         public string UserId => PhotonPlayer?.UserId ?? "null";
         public static CheatPlayer[] All => PlayerUtil.AllPlayers();
         public static CheatPlayer[] Others => PlayerUtil.AllPlayers();
-        private static List<Action<CheatPlayer, PlayerFlag>> _callbacks = new List<Action<CheatPlayer, PlayerFlag>>();
+        private static readonly List<Action<CheatPlayer, PlayerFlag>> _callbacks = new List<Action<CheatPlayer, PlayerFlag>>();
         public static void FlagCallback(Action<CheatPlayer, PlayerFlag> action) => _callbacks.Add(action);
         public PhotonView View;
         public global::Player GamePlayer;
@@ -67,6 +68,7 @@ namespace PeakCheat.Types
         public bool IsLocal => GameCharacter?.IsLocal ?? PhotonPlayer?.IsLocal ?? false;
         public bool PassedOut => CharacterData?.passedOut?? false;
         public int? Actor => PhotonPlayer?.ActorNumber;
+        public int ActorNumber => Actor?? 0;
         public bool GetItem(out Item? item)
         {
             var currentItem = CharacterData?.currentItem;

@@ -1,5 +1,6 @@
 ﻿using PeakCheat.Main;
 using PeakCheat.Utilities;
+using System;
 
 namespace PeakCheat.Types
 {
@@ -25,5 +26,18 @@ namespace PeakCheat.Types
                 CheatHandler.SaveCheats();
             }
         }
+        private readonly object[] _data = new object[short.MaxValue];
+        public bool GetData<T>(int index, out object? obj)
+        {
+            if (index >= _data.Length)
+            {
+                obj = null;
+                return false;
+            }
+
+            obj = _data[index];
+            return true;
+        }
+        public void SetData(int index, object obj) => _data[index] = obj;
     }
 }

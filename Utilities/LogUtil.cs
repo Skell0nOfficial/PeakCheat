@@ -43,8 +43,15 @@ namespace PeakCheat.Utilities
         void CheatBehaviour.Start() => _logger = BepInEx.Logging.Logger.CreateLogSource("PeakCheat");
         public static void Register(string log)
         {
+            if (!TimeUtil.CheckTime(log, 1f)) return;
             _currentLog.Add(log);
-            GeneralUtil.DelayInvoke(() => _currentLog.RemoveAt(0), 7f);
+            BuildLog();
+
+            GeneralUtil.DelayInvoke(() =>
+            {
+                _currentLog.RemoveAt(0);
+                BuildLog();
+            }, 7f);
         }
         public static void Log(object message) => Log(0, message);
         public static void Log(bool error, object message) => Log(error? 2: 1, message);
@@ -53,12 +60,7 @@ namespace PeakCheat.Utilities
         {
             if (!(_logger is ManualLogSource Logger)) return;
 
-            if (!_blockNotification)
-            {
-                if (Object.FindFirstObjectByType<PlayerConnectionLog>() is PlayerConnectionLog LoggerObject)
-                    LoggerObject.AddMessage($"<color=#{ConvertHex(level)}>[PeakCheat] {message}</color>");
-                Register($"[{level}] {message}");
-            }
+            if (!_blockNotification) Register($"<color=#{ConvertHex(level)}>[{level}] {message}</color>");
 
             Logger.Log(Convert(level), message.ToString());
         }
@@ -81,6 +83,26 @@ namespace PeakCheat.Utilities
                 LogLevel.Error => BepInEx.Logging.LogLevel.Error,
                 _ => BepInEx.Logging.LogLevel.None
             };
+        }
+        public static LogLevel Convert(LogType level)
+        {
+            return level switch
+            {
+                LogType.Log => LogLevel.None,
+                LogType.Warning => LogLevel.Warning,
+                LogType.Error => LogLevel.Error,
+                LogType.Exception => LogLevel.Error,
+                LogType.Assert => LogLevel.None,
+                _ => LogLevel.None
+            };
+        }
+        static void BuildLog()
+        {
+            if (Object.FindFirstObjectByType<PlayerConnectionLog>() is PlayerConnectionLog LoggerObject)
+            {
+                LoggerObject.currentLog.CopyList(GetLogEntries().Take(10));
+                LoggerObject.RebuildString();
+            }
         }
     }
 }

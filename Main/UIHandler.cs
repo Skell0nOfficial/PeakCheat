@@ -13,7 +13,7 @@ namespace PeakCheat.Main
         private static readonly List<UITab> _tabs = new List<UITab>();
         private static Texture2D? _background = null, _closeTab = null;
         private static GUIStyle? _selector = null, _tabBG = null, _tabRoof = null, _tabButton = null, _tabButtonEnabled = null;
-        private static Vector2 _mousePos = Vector2.zero, _maxSize = Vector2.zero, _logScroller = Vector2.zero;
+        private static Vector2 _mousePos = Vector2.zero, _maxSize = Vector2.zero;
         private static Rect _selectorRect = Rect.zero;
         public static Texture2D Background => _background ??= GetTexture(TextureType.Background);
         public static Texture2D CloseTab => _closeTab ??= GetTexture(TextureType.CloseButton);
@@ -76,7 +76,7 @@ namespace PeakCheat.Main
         {
             int num = 0;
             var size = new Vector2(540f, 490f);
-            var positions = UnityUtil.GenerateLinePositions(_tabs.Count, .1f, Screen.width, size);
+            var positions = UnityUtil.GenerateLinePositions(_tabs.Count, .1f, Screen.width * .9f, size);
             foreach (var tab in _tabs)
             {
                 tab.Data.Position = positions[num] + Vector2.up * 25f;
