@@ -102,9 +102,11 @@ namespace PeakCheat.Main
                 {
                     var tabRect = data.GetRect;
                     GUI.Window(GeneralUtil.Compute(tab.Name), tabRect, I => tab.Render(), "", TabBG);
+                    
                     var roofSize = new Vector2(tabRect.width, 30f);
                     var roofRect = new Rect(tabRect.position - Vector2.up * roofSize.y, roofSize);
                     GUI.Window(GeneralUtil.Compute(tab.Name + "Roof"), roofRect, I => RenderTabRoof(tab, roofRect), "", TabRoof);
+                    
                     if (roofRect.Contains(_mousePos) && Input.GetMouseButtonDown(0) && !data.Dragging)
                     {
                         tab.Data.DragOffset = data.Position - _mousePos;
@@ -121,10 +123,13 @@ namespace PeakCheat.Main
         private void RenderTabRoof(UITab tab, Rect rect)
         {
             GUI.Label(new Rect(Vector2.zero, new Vector2(500f, tab.Data.Height)), tab.Name.Bold().Size(20));
+            
             var size = new Vector2(rect.width / 17f, rect.height);
             var closeRect = new Rect(new Vector2(rect.width - size.x, 0f), size);
+            
             GUI.DrawTexture(closeRect, CloseTab);
             closeRect.position += rect.position;
+            
             if (closeRect.Contains(_mousePos) && Input.GetMouseButtonDown(0))
             {
                 AudioUtil.Click();

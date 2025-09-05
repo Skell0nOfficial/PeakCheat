@@ -2,7 +2,6 @@
 using PeakCheat.Types;
 using PeakCheat.Utilities;
 using Steamworks;
-using Zorro.Core;
 
 namespace PeakCheat.Patches
 {
@@ -87,13 +86,6 @@ namespace PeakCheat.Patches
             }
 
             return true;
-        }
-        [HarmonyPatch(nameof(SteamLobbyHandler.RequestPhotonRoomID))]
-        [HarmonyPrefix]
-        static bool DontSend(SteamLobbyHandler __instance)
-        {
-            __instance.m_currentlyRequestingRoomID = Optionable<CSteamID>.Some(__instance.m_currentLobby);
-            return false;
         }
     }
 }

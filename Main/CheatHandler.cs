@@ -61,16 +61,6 @@ namespace PeakCheat.Main
         void CheatBehaviour.Start()
         {
             _cheats.Clear();
-            
-            Application.focusChanged += Focused =>
-            {
-                if (PhotonNetwork.InRoom) return;
-                if (Focused && GUIUtility.systemCopyBuffer.Contains("steam://joinlobby"))
-                {
-                    string dat = GUIUtility.systemCopyBuffer.ToLower().Trim();
-                    Modal.OpenYesNoModal(new DefaultHeaderModalOption("Join Lobby?", $"Would you like to join {(ulong.TryParse(dat.Split('/').Last(C => !string.IsNullOrEmpty(C) && C.ToString().StartsWith("7656")), out var ID)? SteamFriends.GetFriendPersonaName(new CSteamID(ID)): "Unknown")}'s Steam Lobby?"), "No Thanks", "Sure!", () => {}, () => Application.OpenURL(dat));
-                }
-            };
 
             var categories = "PeakCheat.Cheats";
             var types = Assembly.GetExecutingAssembly().GetTypes().Where(T => T != null && !string.IsNullOrEmpty(T.Namespace) && T.Namespace.StartsWith(categories) && T.IsSubclassOf(typeof(Cheat))).ToArray();

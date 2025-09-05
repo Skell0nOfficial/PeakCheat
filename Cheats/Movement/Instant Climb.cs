@@ -13,7 +13,7 @@ namespace PeakCheat.Cheats.Movement
             {
                 var move = input.movementInput;
                 climb.playerSlide += move.normalized * 2f;
-                dat.ropePercent += move.y / 7f;
+                dat.ropePercent += move.y / 30f;
             }
         }
     }
